@@ -8,14 +8,14 @@ async function bootstrap() {
         const container = createConfigContainer();
         const config = container.resolve("config");
 
-        const app = createApp();
+        const app = createApp({ config });
 
         const PORT = config.port || 3000;
         server = app.listen(PORT, () =>
-            console.log(`Server is running on http://localhost:${PORT}`)
+            console.log(`Server is running on http://localhost:${PORT}...`)
         );
     } catch (e) {
-        console.error("Failed to start server", e);
+        console.error("Failed to start server.", e);
     }
 }
 

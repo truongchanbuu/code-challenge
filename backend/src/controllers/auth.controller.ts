@@ -7,6 +7,6 @@ export class AuthController {
     }
 
     createAccessCode(req: Request, res: Response) {
-        this.authService.createAccessCode();
+        this.authService.createAccessCode("");
     }
 }

@@ -10,7 +10,9 @@ export function createConfigContainer() {
 
     const firebaseAdmin = admin;
     const auth = admin.auth();
-    const firestore = admin.firestore();
+    const firestore = admin
+        .firestore()
+        .settings({ ignoreUndefinedProperties: true });
 
     container.register({
         config: asValue(configs),

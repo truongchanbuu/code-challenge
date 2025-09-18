@@ -36,21 +36,19 @@ export class UserRepo {
             if (!normalizedPhone)
                 throw new DatabaseError(
                     "Invalid phone.",
-                    ERROR_CODE.INTERNAL_ERROR
+                    ERROR_CODE.VALIDATION
                 );
 
             const userId = await this.firestore.runTransaction(
                 async (tx: Transaction) => {
-                    if (normalizedPhone) {
-                        const phoneRef =
-                            this.phoneIndexCollection.doc(normalizedPhone);
-                        const phoneSnap = await tx.get(phoneRef);
-                        if (phoneSnap.exists)
-                            throw new DatabaseError(
-                                "Phone is already in use.",
-                                ERROR_CODE.CONFLICT
-                            );
-                    }
+                    const phoneRef =
+                        this.phoneIndexCollection.doc(normalizedPhone);
+                    const phoneSnap = await tx.get(phoneRef);
+                    if (phoneSnap.exists)
+                        throw new DatabaseError(
+                            "Phone is already in use.",
+                            ERROR_CODE.CONFLICT
+                        );
 
                     const userRef = this.userCollection.doc();
                     const now = FieldValue.serverTimestamp();
@@ -65,12 +63,11 @@ export class UserRepo {
                                 ? data.email.toLowerCase().trim()
                                 : undefined,
                             createdAt: now,
+                            updatedAt: now,
                         },
                         { merge: true }
                     );
 
-                    const phoneRef =
-                        this.phoneIndexCollection.doc(normalizedPhone);
                     tx.set(
                         phoneRef,
                         {
@@ -179,9 +176,9 @@ export class UserRepo {
                 const payload: any = {
                     ...rest,
                     userId,
+                    role: current.role,
                     createdAt: current.createdAt,
                     lastLoginAt: current.lastLoginAt,
-                    role: current.role,
                 };
 
                 if (data.phone !== undefined) {

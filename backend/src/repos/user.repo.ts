@@ -7,7 +7,7 @@ import {
 import { User, UserConverter } from "../models/user.model";
 import { normalizePhone } from "../utils/phone";
 import { PhoneIndex, PhoneIndexConverter } from "../models/phone-index.model";
-import { DatabaseError, ERROR_CODE } from "../config/error";
+import { AppError, ERROR_CODE } from "../config/error";
 
 export class UserRepo {
     private firestore: Firestore;
@@ -27,15 +27,17 @@ export class UserRepo {
     async createUser(data: User): Promise<User | null> {
         try {
             if (!data.phone)
-                throw new DatabaseError(
+                throw new AppError(
                     "Phone is required",
+                    400,
                     ERROR_CODE.VALIDATION
                 );
 
             const normalizedPhone = normalizePhone(data.phone);
             if (!normalizedPhone)
-                throw new DatabaseError(
+                throw new AppError(
                     "Invalid phone.",
+                    400,
                     ERROR_CODE.VALIDATION
                 );
 
@@ -45,37 +47,27 @@ export class UserRepo {
                         this.phoneIndexCollection.doc(normalizedPhone);
                     const phoneSnap = await tx.get(phoneRef);
                     if (phoneSnap.exists)
-                        throw new DatabaseError(
+                        throw new AppError(
                             "Phone is already in use.",
+                            409,
                             ERROR_CODE.CONFLICT
                         );
 
                     const userRef = this.userCollection.doc();
                     const now = FieldValue.serverTimestamp();
 
-                    tx.set(
-                        userRef,
-                        {
-                            ...data,
-                            userId: userRef.id,
-                            phone: normalizedPhone,
-                            email: data.email
-                                ? data.email.toLowerCase().trim()
-                                : undefined,
-                            createdAt: now,
-                            updatedAt: now,
-                        },
-                        { merge: true }
-                    );
+                    tx.set(userRef, {
+                        ...data,
+                        userId: userRef.id,
+                        phone: normalizedPhone,
+                        email: data.email
+                            ? data.email.toLowerCase().trim()
+                            : undefined,
+                        createdAt: now,
+                        updatedAt: now,
+                    });
 
-                    tx.set(
-                        phoneRef,
-                        {
-                            userId: userRef.id,
-                            createdAt: now,
-                        },
-                        { merge: true }
-                    );
+                    tx.set(phoneRef, { userId: userRef.id, createdAt: now });
 
                     return userRef.id;
                 }
@@ -83,16 +75,53 @@ export class UserRepo {
 
             const created = await this.getUserById(userId);
             if (!created)
-                throw new DatabaseError(
+                throw new AppError(
                     "Cannot create user.",
+                    500,
                     ERROR_CODE.INTERNAL_ERROR
                 );
             return created;
         } catch (e) {
             console.error(e);
-            if (e instanceof DatabaseError) throw e;
-            throw new DatabaseError(
-                `Failed to create user: ${e}`,
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to create user.",
+                500,
+                ERROR_CODE.INTERNAL_ERROR
+            );
+        }
+    }
+
+    async getUserIdByPhone(phone: string): Promise<string> {
+        try {
+            if (!phone?.trim())
+                throw new AppError(
+                    "Invalid phone.",
+                    400,
+                    ERROR_CODE.VALIDATION
+                );
+
+            const normalizedPhone = normalizePhone(phone);
+            if (!normalizedPhone)
+                throw new AppError(
+                    "Invalid phone.",
+                    400,
+                    ERROR_CODE.VALIDATION
+                );
+
+            const snapshot = await this.phoneIndexCollection
+                .doc(normalizedPhone)
+                .get();
+            if (!snapshot.exists)
+                throw new AppError("Not found.", 404, ERROR_CODE.NOT_FOUND);
+
+            return snapshot.data()!.userId;
+        } catch (e) {
+            console.error(e);
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to get userId.",
+                500,
                 ERROR_CODE.INTERNAL_ERROR
             );
         }
@@ -104,9 +133,10 @@ export class UserRepo {
             return snapshot.data() ?? null;
         } catch (e) {
             console.error(e);
-            if (e instanceof DatabaseError) throw e;
-            throw new DatabaseError(
-                `Failed to get user: ${e}`,
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to get user.",
+                500,
                 ERROR_CODE.INTERNAL_ERROR
             );
         }
@@ -122,9 +152,10 @@ export class UserRepo {
             return snap.docs[0]?.data() ?? null;
         } catch (e) {
             console.error(e);
-            if (e instanceof DatabaseError) throw e;
-            throw new DatabaseError(
-                `Failed to get user by email: ${e}`,
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to get user by email.",
+                500,
                 ERROR_CODE.INTERNAL_ERROR
             );
         }
@@ -141,9 +172,10 @@ export class UserRepo {
             return snap.docs[0]?.data() ?? null;
         } catch (e) {
             console.error(e);
-            if (e instanceof DatabaseError) throw e;
-            throw new DatabaseError(
-                `Failed to get user by phone: ${e}`,
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to get user by phone.",
+                500,
                 ERROR_CODE.INTERNAL_ERROR
             );
         }
@@ -159,16 +191,18 @@ export class UserRepo {
             await this.firestore.runTransaction(async (tx: Transaction) => {
                 const snapshot = await tx.get(userRef);
                 if (!snapshot.exists)
-                    throw new DatabaseError(
+                    throw new AppError(
                         "User not found.",
+                        404,
                         ERROR_CODE.NOT_FOUND
                     );
 
                 const current = snapshot.data()!;
-                const currentPhone: string | null = current.phone ?? null;
-                if (!currentPhone || currentPhone.trim() === "")
-                    throw new DatabaseError(
+                const currentPhone = current.phone ?? null;
+                if (!currentPhone)
+                    throw new AppError(
                         "Fatal insufficient data.",
+                        400,
                         ERROR_CODE.VALIDATION
                     );
 
@@ -182,16 +216,18 @@ export class UserRepo {
                 };
 
                 if (data.phone !== undefined) {
-                    if (phone == null || phone.trim() === "")
-                        throw new DatabaseError(
+                    if (!phone?.trim())
+                        throw new AppError(
                             "Phone cannot be empty.",
+                            400,
                             ERROR_CODE.VALIDATION
                         );
 
                     const incomingPhone = normalizePhone(phone);
                     if (!incomingPhone)
-                        throw new DatabaseError(
+                        throw new AppError(
                             "Invalid phone number.",
+                            400,
                             ERROR_CODE.VALIDATION
                         );
 
@@ -200,8 +236,9 @@ export class UserRepo {
                             this.phoneIndexCollection.doc(incomingPhone);
                         const newSnap = await tx.get(newPhoneRef);
                         if (newSnap.exists)
-                            throw new DatabaseError(
+                            throw new AppError(
                                 "Phone is already in use.",
+                                409,
                                 ERROR_CODE.CONFLICT
                             );
 
@@ -210,7 +247,6 @@ export class UserRepo {
                             { userId, updatedAt: FieldValue.serverTimestamp() },
                             { merge: true }
                         );
-
                         tx.delete(this.phoneIndexCollection.doc(currentPhone));
                     }
 
@@ -218,14 +254,14 @@ export class UserRepo {
                 }
 
                 if (data.email !== undefined) {
-                    if (email == null || email === "") {
-                        throw new DatabaseError(
+                    if (!email?.trim()) {
+                        throw new AppError(
                             "Invalid data.",
+                            400,
                             ERROR_CODE.VALIDATION
                         );
-                    } else {
-                        payload.email = email.trim().toLowerCase();
                     }
+                    payload.email = email.trim().toLowerCase();
                 }
 
                 tx.set(
@@ -238,9 +274,37 @@ export class UserRepo {
             return this.getUserById(userId);
         } catch (e) {
             console.error(e);
-            if (e instanceof DatabaseError) throw e;
-            throw new DatabaseError(
-                `Failed to update user: ${e}`,
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to update user.",
+                500,
+                ERROR_CODE.INTERNAL_ERROR
+            );
+        }
+    }
+
+    async trackLoginTime(userId: string): Promise<void> {
+        try {
+            const userRef = this.userCollection.doc(userId);
+            const snapshot = await userRef.get();
+            if (!snapshot.exists)
+                throw new AppError(
+                    "User not found.",
+                    404,
+                    ERROR_CODE.NOT_FOUND
+                );
+
+            const payload: any = {
+                lastLoginAt: FieldValue.serverTimestamp(),
+            };
+
+            await userRef.set(payload, { merge: true });
+        } catch (e) {
+            console.error(e);
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to track login time.",
+                500,
                 ERROR_CODE.INTERNAL_ERROR
             );
         }
@@ -249,21 +313,21 @@ export class UserRepo {
     async deleteUser(userId: string): Promise<boolean> {
         try {
             const userRef = this.userCollection.doc(userId);
-            const result = await this.firestore.runTransaction(async (tx) => {
-                const snap = await tx.get(userRef);
-                if (!snap.exists) return false;
-                const phoneKey = snap.data()?.phone;
+            return await this.firestore.runTransaction(async (tx) => {
+                const snapshot = await tx.get(userRef);
+                if (!snapshot.exists) return false;
+                const phoneKey = snapshot.data()?.phone;
                 if (phoneKey)
                     tx.delete(this.phoneIndexCollection.doc(phoneKey));
                 tx.delete(userRef);
                 return true;
             });
-            return result;
         } catch (e) {
             console.error(e);
-            if (e instanceof DatabaseError) throw e;
-            throw new DatabaseError(
-                `Failed to delete user: ${e}`,
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to delete user.",
+                500,
                 ERROR_CODE.INTERNAL_ERROR
             );
         }

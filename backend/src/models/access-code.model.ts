@@ -4,6 +4,7 @@ import { UserIdSchema } from "./user.model";
 import { FirestoreDataConverter } from "firebase-admin/firestore";
 
 const AccessCodeStatusSchema = z.enum([
+    "pending",
     "active",
     "consumed",
     "expired",
@@ -14,8 +15,8 @@ export const AccessCodeSchema = z.object({
     userId: UserIdSchema,
     phone: PhoneSchema,
     codeHash: z.string(),
-    attempts: z.number().default(0),
-    maxAttempts: z.number().default(5),
+    attempts: z.number().default(0).optional(),
+    maxAttempts: z.number().default(5).optional(),
     status: AccessCodeStatusSchema,
     expiresAt: z.date(),
     sentAt: z.date(),

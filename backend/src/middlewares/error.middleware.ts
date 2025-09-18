@@ -1,12 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "../config/error";
 
-export function notFound(req: Request, res: Response, next: NextFunction) {
-    next(new AppError("Route not found.", 404, "NOT_FOUND"));
-}
-
 export function errorHandler(
-    err: any,
+    err: AppError,
     req: Request,
     res: Response,
     _next: NextFunction

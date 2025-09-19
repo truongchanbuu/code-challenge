@@ -22,6 +22,7 @@ export class EmailNotifier implements OtpNotifier {
         if (!cfg.gmailUser || !cfg.gmailAppPassword) {
             throw new Error("GMAIL_USER and GMAIL_APP_PASSWORD are required");
         }
+
         this.transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {

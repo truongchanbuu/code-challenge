@@ -9,8 +9,8 @@ export class AuthController {
 
     async createAccessCode(req: Request, res: Response, next: NextFunction) {
         try {
-            const { phone } = req.body;
-            await this.authService.createAccessCode(phone);
+            const { phoneNumber } = req.body;
+            await this.authService.createAccessCode(phoneNumber);
 
             return res.status(200).json({
                 ok: true,
@@ -24,8 +24,11 @@ export class AuthController {
 
     async validateAccessCode(req: Request, res: Response, next: NextFunction) {
         try {
-            const { phone, otp } = req.body;
-            const result = await this.authService.verifyAccessCode(phone, otp);
+            const { phoneNumber, accessCode } = req.body;
+            const result = await this.authService.verifyAccessCode(
+                phoneNumber,
+                accessCode
+            );
 
             res.status(200).json({
                 ok: true,

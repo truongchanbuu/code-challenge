@@ -6,6 +6,7 @@ import { UserRepo } from "../repos/user.repo";
 import { AppError, ERROR_CODE } from "../config/error";
 import { OtpNotifier } from "../repos/notifier";
 import { JwtService } from "./jwt.service";
+import { toDate } from "../utils/date";
 
 export class AuthService {
     private readonly OTP_TTL_IN_MINS: number;
@@ -128,7 +129,9 @@ export class AuthService {
                 );
 
             const { id, data } = accessCode;
-            if (data.expiresAt <= new Date()) {
+
+            const expiresDate = toDate(data.expiresAt);
+            if (expiresDate && expiresDate <= new Date()) {
                 await this.accessCodeRepo.expireCode(id);
                 throw new AppError("Code expired.", 400, ERROR_CODE.VALIDATION);
             }
@@ -142,6 +145,7 @@ export class AuthService {
 
                 if ((retry ?? 0) >= (data.maxAttempts ?? this.OTP_MAX_ATTEMPTS))
                     await this.accessCodeRepo.blockCode(id);
+
                 throw new AppError(
                     "Code mismatch.",
                     400,

@@ -16,6 +16,7 @@ export class AuthService {
     private readonly userRepo: UserRepo;
 
     private readonly smsService: OtpNotifier;
+    private readonly emailService: OtpNotifier;
     private readonly jwtService: JwtService;
 
     constructor({
@@ -23,12 +24,14 @@ export class AuthService {
         accessCodeRepo,
         userRepo,
         smsService,
+        emailService,
         jwtService,
     }: {
         config: any;
         accessCodeRepo: AccessCodeRepo;
         userRepo: UserRepo;
         smsService: OtpNotifier;
+        emailService: OtpNotifier;
         jwtService: JwtService;
     }) {
         this.OTP_TTL_IN_MINS = config?.sms?.otpTtlInMins ?? 5;
@@ -46,6 +49,7 @@ export class AuthService {
         this.accessCodeRepo = accessCodeRepo;
         this.userRepo = userRepo;
         this.smsService = smsService;
+        this.emailService = emailService;
         this.jwtService = jwtService;
     }
 

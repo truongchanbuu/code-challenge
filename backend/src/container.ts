@@ -12,6 +12,7 @@ import { JwtService } from "./services/jwt.service";
 import { AdminRoutes } from "./routes/admin.route";
 import { UserService } from "./services/user.service";
 import { AdminController } from "./controllers/admin.controller";
+import { EmailNotifier } from "./services/email.service";
 
 export function createConfigContainer() {
     const container = createContainer();
@@ -31,6 +32,7 @@ export function createConfigContainer() {
 
         jwtService: asClass(JwtService).singleton(),
         smsService: asClass(SmsNotifier).singleton(),
+        emailService: asClass(EmailNotifier).singleton(),
 
         userRepo: asClass(UserRepo).singleton(),
         accessCodeRepo: asClass(AccessCodeRepo).singleton(),

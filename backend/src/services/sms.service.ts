@@ -28,7 +28,7 @@ export class SmsNotifier implements OtpNotifier {
                 );
             }
 
-            const body = `[Online Classroom Management Sysmtem] Your login code is ${otp}. Expires in ${ttlMinutes} mins.`;
+            const body = `[Online Classroom Management System] Your login code is ${otp}. Expires in ${ttlMinutes} mins.`;
             const toPhone = normalizePhone(to);
             if (!toPhone)
                 throw new AppError(

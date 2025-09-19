@@ -17,4 +17,9 @@ export const configs = {
         otpMaxAttempts: Number(process.env.OTP_MAX_ATTEMPTS || 5),
         resend_cooldown: Number(process.env.RESEND_COOLDOWN || 30),
     },
+    email: {
+        from: process.env.EMAIL_FROM,
+        gmailUser: process.env.GMAIL_USER,
+        gmailAppPassword: process.env.GMAIL_APP_PASSWORD,
+    },
 };

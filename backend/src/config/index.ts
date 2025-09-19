@@ -8,11 +8,13 @@ export const configs = {
     accessTokentlSec: process.env.JWT_ACCESS_TOKEN_TTL || 900,
     refreshTokentlSec: process.env.JWT_REFRESH_TOKEN_TTL || 2592000,
     sms: {
+        from: process.env.TWILIO_FROM,
+        messagingServiceSid: process.env.TWILIO_MSID,
         twilioSid: process.env.TWILIO_SID,
         twilioToken: process.env.TWILIO_TOKEN,
         otpSecret: process.env.OTP_SECRET,
-        otpTtlInSecs: process.env.OTP_TTL_IN_MINS,
-        otpMaxAttempts: process.env.OTP_MAX_ATTEMPTS,
-        resend_cooldown: process.env.RESEND_COOLDOWN || 30,
+        otpTtlInMins: Number(process.env.OTP_TTL_IN_MINS || 5),
+        otpMaxAttempts: Number(process.env.OTP_MAX_ATTEMPTS || 5),
+        resend_cooldown: Number(process.env.RESEND_COOLDOWN || 30),
     },
 };

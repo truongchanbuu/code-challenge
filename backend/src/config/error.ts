@@ -12,13 +12,15 @@ export enum ERROR_CODE {
     USER_NOT_FOUND = "USER_NOT_FOUND",
     RATE_LIMITED = "RATE_LIMITED",
     UNAUTHORIZED = "UNAUTHORIZED",
+    FORBIDDEN = "FORBIDDEN",
 }
 
 export class AppError extends Error {
     constructor(
         public message: string,
         public statusCode = 500,
-        public code: ERROR_CODE = ERROR_CODE.INTERNAL_ERROR
+        public code: ERROR_CODE = ERROR_CODE.INTERNAL_ERROR,
+        public details?: any
     ) {
         super(message);
     }
@@ -27,7 +29,7 @@ export class AppError extends Error {
         return new AppError(msg, 404, ERROR_CODE.NOT_FOUND);
     }
 
-    static validation(msg = "Validation error") {
-        return new AppError(msg, 400, ERROR_CODE.VALIDATION);
+    static validation(msg = "Invalid data.", details: any) {
+        return new AppError(msg, 400, ERROR_CODE.VALIDATION, details);
     }
 }

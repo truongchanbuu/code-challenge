@@ -24,7 +24,7 @@ export class UserRepo {
             .withConverter(PhoneIndexConverter);
     }
 
-    async createUser(data: User): Promise<User | null> {
+    async createUser(data: any): Promise<User | null> {
         try {
             if (!data.phone)
                 throw new AppError(

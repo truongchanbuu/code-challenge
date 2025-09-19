@@ -2,6 +2,7 @@ import { z } from "zod";
 import { PhoneSchema } from "./phone.model";
 import { UserIdSchema } from "./user.model";
 import { FirestoreDataConverter } from "firebase-admin/firestore";
+import { toDate } from "../utils/date";
 
 const AccessCodeStatusSchema = z.enum([
     "pending",

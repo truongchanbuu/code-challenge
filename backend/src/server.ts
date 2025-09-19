@@ -8,7 +8,7 @@ async function bootstrap() {
         const container = createConfigContainer();
         const config = container.resolve("config");
 
-        const app = createApp({ config });
+        const app = createApp({ config, container });
 
         const PORT = config.port || 3000;
         server = app.listen(PORT, () =>

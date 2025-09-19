@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { UserIdSchema } from "./user.model";
 import { FirestoreDataConverter, Timestamp } from "firebase-admin/firestore";
+import { toDate } from "../utils/date";
 
 export const PhoneIndexSchema = z.object({
     userId: UserIdSchema,

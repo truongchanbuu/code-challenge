@@ -1,29 +1,29 @@
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 
 export class JwtService {
     private secret: string;
     private accessTtl: number;
     private refreshTtl: number;
 
-    constructor(config: any) {
-        if (!config?.secret) throw new Error("JWT secret is required.");
-        this.secret = config.secret;
+    constructor({ config }: { config: any }) {
+        if (!config?.jwtSecret) throw new Error("JWT secret is required.");
+        this.secret = config.jwtSecret;
         this.accessTtl = config.accessTtlSec ?? 15 * 60;
         this.refreshTtl = config.refreshTtlSec ?? 30 * 24 * 60 * 60;
     }
 
-    signAccess(subject: string, claims: any = {}) {
+    signAccess(sub: string, claims: any = {}) {
         return jwt.sign(claims, this.secret, {
             algorithm: "HS256",
-            subject: subject,
+            subject: sub,
             expiresIn: this.accessTtl,
         });
     }
 
-    signRefresh(subject: string, tokenVersion = 0) {
+    signRefresh(sub: string, tokenVersion = 0) {
         return jwt.sign({ tv: tokenVersion }, this.secret, {
             algorithm: "HS256",
-            subject: subject,
+            subject: sub,
             expiresIn: this.refreshTtl,
         });
     }

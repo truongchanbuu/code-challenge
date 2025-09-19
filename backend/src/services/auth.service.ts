@@ -31,19 +31,17 @@ export class AuthService {
         smsService: OtpNotifier;
         jwtService: JwtService;
     }) {
-        this.OTP_TTL_IN_MINS = config?.sms?.OTP_TTL_IN_MINS ?? 5;
-        this.OTP_MAX_ATTEMPTS = config?.sms?.OTP_MAX_ATTEMPTS ?? 5;
-        if (
-            !config?.sms?.OTP_SECRET ||
-            config?.sms?.OTP_SECRET?.trim() === ""
-        ) {
+        this.OTP_TTL_IN_MINS = config?.sms?.otpTtlInMins ?? 5;
+        this.OTP_MAX_ATTEMPTS = config?.sms?.otpMaxAttempts ?? 5;
+
+        if (!config?.sms?.otpSecret || config?.sms?.otpSecret?.trim() === "") {
             throw new AppError(
                 "No otp secret found.",
                 500,
                 ERROR_CODE.INTERNAL_ERROR
             );
         }
-        this.OTP_SECRET = Buffer.from(config?.sms?.OTP_SECRET, "hex");
+        this.OTP_SECRET = Buffer.from(config?.sms?.otpSecret, "hex");
 
         this.accessCodeRepo = accessCodeRepo;
         this.userRepo = userRepo;
@@ -59,6 +57,7 @@ export class AuthService {
             }
 
             const otp = this.getOtp6Code();
+            console.log(`otp: ${otp}`);
             const codeHash = this.hashHmacOtp(
                 normalizedPhone,
                 otp,

@@ -1,4 +1,4 @@
-const toDate = (v: any): Date | null =>
+export const toDate = (v: any): Date | null =>
     v == null
         ? null
         : v instanceof Date

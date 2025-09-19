@@ -23,6 +23,7 @@ export function errorHandler(
             code: err?.code ?? "INTERNAL_ERROR",
             statusCode: status,
             message: err?.message ?? "Something went wrong.",
+            details: err?.details,
         },
     };
 

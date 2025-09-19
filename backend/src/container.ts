@@ -9,15 +9,17 @@ import { AccessCodeRepo } from "./repos/access-code.repo";
 import { SmsNotifier } from "./services/sms.service";
 import { createTwilioClient } from "./libs/twilio";
 import { JwtService } from "./services/jwt.service";
+import { AdminRoutes } from "./routes/admin.route";
+import { UserService } from "./services/user.service";
+import { AdminController } from "./controllers/admin.controller";
 
 export function createConfigContainer() {
     const container = createContainer();
 
     const firebaseAdmin = admin;
     const auth = admin.auth();
-    const firestore = admin
-        .firestore()
-        .settings({ ignoreUndefinedProperties: true });
+    const firestore = admin.firestore();
+    firestore.settings({ ignoreUndefinedProperties: true });
 
     container.register({
         config: asValue(configs),
@@ -33,11 +35,14 @@ export function createConfigContainer() {
         userRepo: asClass(UserRepo).singleton(),
         accessCodeRepo: asClass(AccessCodeRepo).singleton(),
 
+        userService: asClass(UserService).singleton(),
         authService: asClass(AuthService).singleton(),
 
-        authController: asClass(AuthController).scoped(),
+        authController: asClass(AuthController).singleton(),
+        adminController: asClass(AdminController).singleton(),
 
         authRoutes: asClass(AuthRoutes).singleton(),
+        adminRoutes: asClass(AdminRoutes).singleton(),
     });
 
     return container;

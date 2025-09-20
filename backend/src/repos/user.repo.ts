@@ -26,14 +26,14 @@ export class UserRepo {
 
     async createUser(data: any): Promise<User | null> {
         try {
-            if (!data.phone)
+            if (!data.phoneNumber)
                 throw new AppError(
                     "Phone is required",
                     400,
                     ERROR_CODE.VALIDATION
                 );
 
-            const normalizedPhone = normalizePhone(data.phone);
+            const normalizedPhone = normalizePhone(data.phoneNumber);
             if (!normalizedPhone)
                 throw new AppError(
                     "Invalid phone.",
@@ -59,7 +59,7 @@ export class UserRepo {
                     tx.set(userRef, {
                         ...data,
                         userId: userRef.id,
-                        phone: normalizedPhone,
+                        phoneNumber: normalizedPhone,
                         email: data.email
                             ? data.email.toLowerCase().trim()
                             : undefined,
@@ -92,16 +92,16 @@ export class UserRepo {
         }
     }
 
-    async getUserIdByPhone(phone: string): Promise<string> {
+    async getUserIdByPhone(phoneNumber: string): Promise<string> {
         try {
-            if (!phone?.trim())
+            if (!phoneNumber?.trim())
                 throw new AppError(
                     "Invalid phone.",
                     400,
                     ERROR_CODE.VALIDATION
                 );
 
-            const normalizedPhone = normalizePhone(phone);
+            const normalizedPhone = normalizePhone(phoneNumber);
             if (!normalizedPhone)
                 throw new AppError(
                     "Invalid phone.",
@@ -151,7 +151,7 @@ export class UserRepo {
                 .get();
             return snap.docs[0]?.data() ?? null;
         } catch (e) {
-            console.error(e);
+            console.error(`error: ${e}`);
             if (e instanceof AppError) throw e;
             throw new AppError(
                 "Failed to get user by email.",
@@ -161,12 +161,12 @@ export class UserRepo {
         }
     }
 
-    async getUserByPhone(phone: string): Promise<User | null> {
+    async getUserByPhone(phoneNumber: string): Promise<User | null> {
         try {
-            const key = normalizePhone(phone);
+            const key = normalizePhone(phoneNumber);
             if (!key) return null;
             const snap = await this.userCollection
-                .where("phone", "==", key)
+                .where("phoneNumber", "==", key)
                 .limit(1)
                 .get();
             return snap.docs[0]?.data() ?? null;
@@ -198,7 +198,7 @@ export class UserRepo {
                     );
 
                 const current = snapshot.data()!;
-                const currentPhone = current.phone ?? null;
+                const currentPhone = current.phoneNumber ?? null;
                 if (!currentPhone)
                     throw new AppError(
                         "Fatal insufficient data.",
@@ -206,7 +206,7 @@ export class UserRepo {
                         ERROR_CODE.VALIDATION
                     );
 
-                const { phone, email, ...rest } = data;
+                const { phoneNumber, email, ...rest } = data;
                 const payload: any = {
                     ...rest,
                     userId,
@@ -215,15 +215,15 @@ export class UserRepo {
                     lastLoginAt: current.lastLoginAt,
                 };
 
-                if (data.phone !== undefined) {
-                    if (!phone?.trim())
+                if (data.phoneNumber !== undefined) {
+                    if (!phoneNumber?.trim())
                         throw new AppError(
                             "Phone cannot be empty.",
                             400,
                             ERROR_CODE.VALIDATION
                         );
 
-                    const incomingPhone = normalizePhone(phone);
+                    const incomingPhone = normalizePhone(phoneNumber);
                     if (!incomingPhone)
                         throw new AppError(
                             "Invalid phone number.",
@@ -250,7 +250,7 @@ export class UserRepo {
                         tx.delete(this.phoneIndexCollection.doc(currentPhone));
                     }
 
-                    payload.phone = incomingPhone;
+                    payload.phoneNumber = incomingPhone;
                 }
 
                 if (data.email !== undefined) {
@@ -316,7 +316,7 @@ export class UserRepo {
             return await this.firestore.runTransaction(async (tx) => {
                 const snapshot = await tx.get(userRef);
                 if (!snapshot.exists) return false;
-                const phoneKey = snapshot.data()?.phone;
+                const phoneKey = snapshot.data()?.phoneNumber;
                 if (phoneKey)
                     tx.delete(this.phoneIndexCollection.doc(phoneKey));
                 tx.delete(userRef);

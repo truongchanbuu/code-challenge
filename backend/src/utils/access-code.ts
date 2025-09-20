@@ -4,10 +4,10 @@ import { normalizePhone } from "./phone";
 
 export function normalizeTarget(type: AccessCodeType, raw: string): string {
     if (type === "phone") {
-        const phone = normalizePhone(raw);
-        if (!phone)
+        const phoneNumber = normalizePhone(raw);
+        if (!phoneNumber)
             throw new AppError("Invalid phone.", 400, ERROR_CODE.VALIDATION);
-        return phone;
+        return phoneNumber;
     }
 
     const email = (raw ?? "").trim().toLowerCase();

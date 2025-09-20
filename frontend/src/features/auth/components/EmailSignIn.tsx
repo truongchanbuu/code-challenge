@@ -6,6 +6,7 @@ import {
   EmailSignInSchema,
   type EmailSignInValues,
 } from "@/schemas/auth.schema";
+import { useSendAccessCode } from "@/hooks/use-send-access-code";
 
 export default function EmailSignInForm() {
   const {
@@ -19,8 +20,9 @@ export default function EmailSignInForm() {
     defaultValues: { email: "" },
   });
 
+  const sendOtp = useSendAccessCode("email");
   const onSubmit = (data: any) => {
-    console.log("Email submitted:", data);
+    sendOtp.mutate(data.email);
   };
 
   return (

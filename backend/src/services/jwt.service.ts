@@ -43,13 +43,13 @@ export class JwtService {
     issueTokenPair(user: {
         userId: string;
         role?: string;
-        phone?: string;
+        phoneNumber?: string;
         email?: string;
         tokenVersion?: number;
     }) {
         const accessToken = this.signAccess(user.userId, {
             role: user.role,
-            phone: user.phone,
+            phoneNumber: user.phoneNumber,
             email: user.email,
         });
         const refreshToken = this.signRefresh(

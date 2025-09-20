@@ -13,9 +13,9 @@ export class AdminController {
 
     async createUser(req: Request, res: Response, next: NextFunction) {
         try {
-            const { phone, role, email, username } = req.body;
+            const { phoneNumber, role, email, username } = req.body;
             const user: CreateUserDTO = {
-                phone,
+                phoneNumber,
                 role,
                 email,
                 username,

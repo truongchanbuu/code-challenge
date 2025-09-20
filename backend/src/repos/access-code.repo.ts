@@ -29,9 +29,10 @@ export class AccessCodeRepo {
     async saveAccessCode(code: AccessCode): Promise<string> {
         try {
             const type: AccessCodeType | undefined =
-                code.type ?? (code.phone ? "phone" : undefined);
+                code.type ?? (code.phoneNumber ? "phone" : undefined);
             let target =
-                code.target ?? (type === "phone" ? code.phone : undefined);
+                code.target ??
+                (type === "phone" ? code.phoneNumber : undefined);
             if (!type || !target)
                 throw new AppError(
                     "Insufficient data.",
@@ -62,7 +63,7 @@ export class AccessCodeRepo {
                     userId: code.userId,
                     type,
                     target,
-                    phone: type === "phone" ? target : null,
+                    phoneNumber: type === "phone" ? target : null,
                     codeHash: code.codeHash,
                     attempts: code.attempts ?? 0,
                     maxAttempts: code.maxAttempts ?? 5,
@@ -102,10 +103,10 @@ export class AccessCodeRepo {
     }
 
     async getLatestActiveByPhone(
-        phone: string
+        phoneNumber: string
     ): Promise<{ id: string; data: AccessCode } | null> {
         try {
-            const normalizedPhone = normalizePhone(phone);
+            const normalizedPhone = normalizePhone(phoneNumber);
             if (!normalizedPhone) {
                 throw new AppError(
                     "Invalid phone.",
@@ -154,11 +155,11 @@ export class AccessCodeRepo {
     }
 
     async getCodesByPhone(
-        phone: string,
+        phoneNumber: string,
         opts?: { status?: AccessCodeStatus; limit?: number }
     ): Promise<Array<{ id: string; data: AccessCode }>> {
         try {
-            const normalizedPhone = normalizePhone(phone);
+            const normalizedPhone = normalizePhone(phoneNumber);
             if (!normalizedPhone)
                 throw new AppError(
                     "Invalid phone.",
@@ -167,7 +168,11 @@ export class AccessCodeRepo {
                 );
 
             let query: FirebaseFirestore.Query<AccessCode> =
-                this.accessCodeCollection.where("phone", "==", normalizedPhone);
+                this.accessCodeCollection.where(
+                    "phoneNumber",
+                    "==",
+                    normalizedPhone
+                );
             if (opts?.status) query = query.where("status", "==", opts.status);
             query = query
                 .orderBy("sentAt", "desc")

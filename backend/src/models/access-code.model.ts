@@ -17,7 +17,7 @@ const TargetSchema = z.string().min(3);
 export const AccessCodeSchema = z
     .object({
         userId: UserIdSchema,
-        phone: PhoneSchema.optional().nullable(),
+        phoneNumber: PhoneSchema.optional().nullable(),
         type: AccessCodeType.default("phone"),
         target: TargetSchema.optional(),
         codeHash: z.string(),
@@ -30,7 +30,7 @@ export const AccessCodeSchema = z
     })
     .superRefine((value, ctx) => {
         if (value.type === "phone") {
-            if (!value.target && !value.phone) {
+            if (!value.target && !value.phoneNumber) {
                 ctx.addIssue({
                     code: z.ZodIssueCode.custom,
                     message: "Missing target/phone for type=phone",
@@ -58,7 +58,7 @@ export const AccessCodeConverter: FirestoreDataConverter<AccessCode> = {
         const type = parsed.type ?? "phone";
         const target =
             parsed.target ??
-            (type === "phone" ? (parsed.phone ?? undefined) : undefined);
+            (type === "phone" ? (parsed.phoneNumber ?? undefined) : undefined);
 
         if (!target) {
             throw new Error("AccessCodeConverter: target is required");
@@ -68,10 +68,10 @@ export const AccessCodeConverter: FirestoreDataConverter<AccessCode> = {
             userId: parsed.userId,
             type,
             target,
-            phone:
+            phoneNumber:
                 type === "phone"
-                    ? (parsed.phone ?? target)
-                    : (parsed.phone ?? null),
+                    ? (parsed.phoneNumber ?? target)
+                    : (parsed.phoneNumber ?? null),
             codeHash: parsed.codeHash,
             attempts: parsed.attempts,
             maxAttempts: parsed.maxAttempts,
@@ -88,7 +88,7 @@ export const AccessCodeConverter: FirestoreDataConverter<AccessCode> = {
         data.consumedAt =
             data.consumedAt == null ? null : toDate(data.consumedAt);
         if (!data.type) data.type = "phone";
-        if (!data.target && data.phone) data.target = data.phone;
+        if (!data.target && data.phoneNumber) data.target = data.phoneNumber;
 
         return AccessCodeSchema.parse(data);
     },

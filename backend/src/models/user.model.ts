@@ -1,18 +1,14 @@
 import { z } from "zod";
 import { RoleSchema } from "./role";
 import { PhoneSchema } from "./phone.model";
-import {
-    FieldValue,
-    FirestoreDataConverter,
-    Timestamp,
-} from "firebase-admin/firestore";
+import { FieldValue, FirestoreDataConverter } from "firebase-admin/firestore";
 import { toDate } from "../utils/date";
 
 export const UserIdSchema = z.string().nonempty();
 
 export const UserSchema = z.object({
     userId: UserIdSchema,
-    phone: PhoneSchema,
+    phoneNumber: PhoneSchema.optional(),
     role: RoleSchema,
     email: z.email().optional(),
     username: z.string().min(2).max(100),
@@ -27,7 +23,7 @@ export const UserConverter: FirestoreDataConverter<User> = {
     toFirestore(user: User) {
         const doc: Record<string, any> = {
             userId: user.userId,
-            phone: user.phone,
+            phoneNumber: user.phoneNumber,
             role: user.role,
             email: user.email,
             username: user.username,
@@ -43,7 +39,7 @@ export const UserConverter: FirestoreDataConverter<User> = {
         const data = snap.data() as any;
         const candidate: User = {
             userId: data.userId ?? snap.id,
-            phone: data.phone,
+            phoneNumber: data.phoneNumber,
             role: data.role,
             email: data.email,
             username: data.username,

@@ -1,12 +1,12 @@
 import { CountryCode, parsePhoneNumberFromString } from "libphonenumber-js";
 
 export function normalizePhone(
-    phone?: string,
+    phoneNumber?: string,
     locale: CountryCode = "VN"
 ): string | undefined {
-    if (!phone) return undefined;
-    const cleaned = phone.trim().replace(/[()\.\-\s]/g, "");
+    if (!phoneNumber) return undefined;
+    const cleaned = phoneNumber.trim().replace(/[()\.\-\s]/g, "");
     if (cleaned === "") return undefined;
-    const parsed = parsePhoneNumberFromString(phone, locale);
+    const parsed = parsePhoneNumberFromString(phoneNumber, locale);
     return parsed?.isValid() ? parsed.format("E.164") : undefined;
 }

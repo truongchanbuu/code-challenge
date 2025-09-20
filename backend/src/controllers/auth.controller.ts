@@ -42,7 +42,7 @@ export class AuthController {
                 ok: true,
                 data: {
                     userId: result.user.userId,
-                    phone: result.user.phone,
+                    phoneNumber: result.user.phoneNumber,
                     role: result.user.role,
                     tokens: result.tokens,
                 },

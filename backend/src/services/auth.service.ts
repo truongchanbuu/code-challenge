@@ -94,7 +94,7 @@ export class AuthService {
                 userId,
                 type,
                 target,
-                phone: type === "phone" ? target : null,
+                phoneNumber: type === "phone" ? target : null,
                 codeHash,
                 status: "active",
                 maxAttempts: this.OTP_MAX_ATTEMPTS,
@@ -225,14 +225,14 @@ export class AuthService {
                 this.jwtService.issueTokenPair({
                     userId: user.userId,
                     role: user.role,
-                    phone: user.phone,
+                    phoneNumber: user.phoneNumber,
                     email: user.email,
                 });
 
             return {
                 user: {
                     userId: user.userId,
-                    phone: user.phone,
+                    phoneNumber: user.phoneNumber,
                     email: user.email,
                     role: user.role,
                 },

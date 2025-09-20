@@ -35,10 +35,10 @@ export function createApp({
     app.use(scopePerRequest(container));
 
     const adminRoutes = container.resolve("adminRoutes");
-    const authRoutes = container.resolve("authRoutes");
+    const apiRoutes = container.resolve("apiRoutes");
 
     app.use("/admin", adminRoutes.router);
-    app.use("/api", authRoutes.router);
+    app.use("/api", apiRoutes.router);
 
     app.use(notFoundHandler);
     app.use(errorHandler);

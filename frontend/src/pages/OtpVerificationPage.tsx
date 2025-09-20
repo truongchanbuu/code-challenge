@@ -115,7 +115,7 @@ export default function OtpVerificationPage() {
             <button
               type="submit"
               className="btn btn-primary text-primary-content w-full rounded-md"
-              disabled={!isValid || isSubmitting}
+              disabled={!isValid || isSubmitting || verifyOtp.isPending}
             >
               {isSubmitting ? (
                 <>

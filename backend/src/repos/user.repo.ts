@@ -332,4 +332,18 @@ export class UserRepo {
             );
         }
     }
+
+    async updateAfterAccountSetup(
+        userId: string,
+        data: {
+            username: string;
+            passwordHash: string;
+            emailVerified: boolean;
+            updatedAt: Date;
+        }
+    ) {
+        console.log(`ref: ${JSON.stringify(data)}`);
+        const ref = this.userCollection.doc(userId);
+        await ref.set(data, { merge: true });
+    }
 }

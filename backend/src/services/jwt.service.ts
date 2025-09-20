@@ -8,8 +8,8 @@ export class JwtService {
     constructor({ config }: { config: any }) {
         if (!config?.jwtSecret) throw new Error("JWT secret is required.");
         this.secret = config.jwtSecret;
-        this.accessTtl = config.accessTtlSec ?? 15 * 60;
-        this.refreshTtl = config.refreshTtlSec ?? 30 * 24 * 60 * 60;
+        this.accessTtl = config?.accessTokentlSec ?? 60 * 60;
+        this.refreshTtl = config?.refreshTokentlSec ?? 30 * 24 * 60 * 60;
     }
 
     signAccess(sub: string, claims: any = {}) {

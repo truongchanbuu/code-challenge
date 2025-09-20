@@ -1,4 +1,4 @@
-import express, { Router } from "express";
+import { Router } from "express";
 import { AuthController } from "../controllers/auth.controller";
 import { validate } from "../middlewares/validator.middleware";
 import { createOtpLimiter, verifyOtpLimiter } from "../libs/rate-limit";
@@ -6,6 +6,7 @@ import {
     CreateAccessCodeDTO,
     ValidateAccessCodeDTO,
 } from "../models/access-code.dto";
+import { SetupAccountSchema } from "../models/student.schema";
 
 export class AuthRoutes {
     private authController: AuthController;
@@ -27,6 +28,12 @@ export class AuthRoutes {
             validate.body(ValidateAccessCodeDTO),
             verifyOtpLimiter,
             this.authController.validateAccessCode.bind(this.authController)
+        );
+
+        this.router.post(
+            "/setup-account",
+            validate.body(SetupAccountSchema),
+            this.authController.setupAccount.bind(this.authController)
         );
     }
 }

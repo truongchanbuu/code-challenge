@@ -1,10 +1,18 @@
 import { NextFunction, Request, Response } from "express";
 import { AuthService } from "../services/auth.service";
+import { SetupAccountSchema } from "../models/student.schema";
+import { StudentService } from "../services/student.service";
 
 export class AuthController {
     private authService: AuthService;
-    constructor({ authService }: { authService: AuthService }) {
-        this.authService = authService;
+    private studentService: StudentService;
+
+    constructor(deps: {
+        authService: AuthService;
+        studentService: StudentService;
+    }) {
+        this.authService = deps.authService;
+        this.studentService = deps.studentService;
     }
 
     async createAccessCode(req: Request, res: Response, next: NextFunction) {
@@ -38,15 +46,25 @@ export class AuthController {
                 otp: accessCode,
             });
 
-            res.status(200).json({
+            return res.status(200).json({
                 ok: true,
                 data: {
                     userId: result.user.userId,
-                    phoneNumber: result.user.phoneNumber,
+                    phoneNumber: phoneNumber,
                     role: result.user.role,
                     tokens: result.tokens,
                 },
             });
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    async setupAccount(req: Request, res: Response, next: NextFunction) {
+        try {
+            const parsed = SetupAccountSchema.parse(req.body);
+            const data = await this.studentService.setup(parsed);
+            return res.status(200).json({ ok: true, data });
         } catch (e) {
             next(e);
         }

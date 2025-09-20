@@ -3,10 +3,11 @@ dotenv.config();
 
 export const configs = {
     port: process.env.PORT || 3000,
+    feUrl: process.env.FE_URL,
     origins: process.env.CORS_ORIGIN?.split(",") || "http://localhost:3000",
     jwtSecret: process.env.JWT_SECRET,
-    accessTokentlSec: process.env.JWT_ACCESS_TOKEN_TTL || 900,
-    refreshTokentlSec: process.env.JWT_REFRESH_TOKEN_TTL || 2592000,
+    accessTokentlSec: Number(process.env.JWT_ACCESS_TOKEN_TTL || 3600),
+    refreshTokentlSec: Number(process.env.JWT_REFRESH_TOKEN_TTL || 2592000),
     sms: {
         from: process.env.TWILIO_FROM,
         messagingServiceSid: process.env.TWILIO_MSID,
@@ -21,5 +22,6 @@ export const configs = {
         from: process.env.EMAIL_FROM,
         gmailUser: process.env.GMAIL_USER,
         gmailAppPassword: process.env.GMAIL_APP_PASSWORD,
+        tokenSecret: process.env.TOKEN_SECRET,
     },
 };

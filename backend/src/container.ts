@@ -3,16 +3,21 @@ import { configs } from "./config";
 import { admin } from "./config/firebase";
 import { AuthService } from "./services/auth.service";
 import { AuthController } from "./controllers/auth.controller";
-import { AuthRoutes } from "./routes/auth.route";
+import { AuthRoutes } from "./routes/auth.routes";
 import { UserRepo } from "./repos/user.repo";
 import { AccessCodeRepo } from "./repos/access-code.repo";
 import { SmsNotifier } from "./services/sms.service";
 import { createTwilioClient } from "./libs/twilio";
 import { JwtService } from "./services/jwt.service";
-import { AdminRoutes } from "./routes/admin.route";
+import { AdminRoutes } from "./routes/admin.routes";
 import { UserService } from "./services/user.service";
 import { AdminController } from "./controllers/admin.controller";
 import { EmailNotifier } from "./services/email.service";
+import { StudentController } from "./controllers/student.controller";
+import { StudentRoutes } from "./routes/student.routes";
+import { StudentService } from "./services/student.service";
+import { ApiRoutes } from "./routes/api.routes";
+import { SetupTokenRepo } from "./repos/setup-token.repo";
 
 export function createConfigContainer() {
     const container = createContainer();
@@ -35,16 +40,21 @@ export function createConfigContainer() {
         emailService: asClass(EmailNotifier).singleton(),
 
         userRepo: asClass(UserRepo).singleton(),
+        setupTokenRepo: asClass(SetupTokenRepo).singleton(),
         accessCodeRepo: asClass(AccessCodeRepo).singleton(),
 
         userService: asClass(UserService).singleton(),
         authService: asClass(AuthService).singleton(),
+        studentService: asClass(StudentService).singleton(),
 
         authController: asClass(AuthController).singleton(),
         adminController: asClass(AdminController).singleton(),
+        studentController: asClass(StudentController).singleton(),
 
         authRoutes: asClass(AuthRoutes).singleton(),
         adminRoutes: asClass(AdminRoutes).singleton(),
+        studentRoutes: asClass(StudentRoutes).singleton(),
+        apiRoutes: asClass(ApiRoutes).singleton(),
     });
 
     return container;

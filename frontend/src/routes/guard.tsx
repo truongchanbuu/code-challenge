@@ -1,43 +1,34 @@
-import type { ReactNode } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { storage } from "@/utils/storage";
 import type { Role } from "@/schemas/user.schema";
+import { clearAuth, getRole, getToken } from "@/utils/auth";
+import { isExpiredToken } from "@/utils/api";
 
 const homeByRole = (role: Role | null) =>
   role === "instructor" ? "/instructor/dashboard" : "/student/dashboard";
 
-export function PublicOnly({ children }: { children: ReactNode }) {
-  const token = storage.token;
-  const role = storage.role;
-  if (token) return <Navigate to={homeByRole(role)} replace />;
-  return <>{children}</>;
-}
-
-function isExpiredJWT(token: string): boolean {
-  try {
-    const [, payload] = token.split(".");
-    const { exp } = JSON.parse(atob(payload));
-    return typeof exp === "number" && Date.now() / 1000 >= exp;
-  } catch {
-    return false;
+export function PublicOnly({ children }: { children: React.ReactNode }) {
+  const token = getToken();
+  const role = getRole();
+  if (token && !isExpiredToken(token)) {
+    return <Navigate to={homeByRole(role)} replace />;
   }
+  return <>{children}</>;
 }
 
 export function AuthGuard({ children }: { children?: React.ReactNode }) {
   const loc = useLocation();
-  const token = storage.token;
-
-  if (!token || isExpiredJWT(token)) {
-    storage.clear();
+  const token = getToken();
+  if (!token || isExpiredToken(token)) {
+    clearAuth();
     return (
       <Navigate
         to="/login"
         replace
         state={{ next: loc.pathname + loc.search }}
+        data-testid="guard-redirect"
       />
     );
   }
-
   return <>{children ?? <Outlet />}</>;
 }
 
@@ -48,7 +39,7 @@ export function RoleGuard({
   allow: Role[];
   children?: React.ReactNode;
 }) {
-  const role = storage.role;
+  const role = getRole();
   if (!role) return <Navigate to="/login" replace />;
   if (!allow.includes(role)) return <Navigate to={homeByRole(role)} replace />;
   return <>{children ?? <Outlet />}</>;

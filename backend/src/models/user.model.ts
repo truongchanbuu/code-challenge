@@ -12,7 +12,10 @@ export const UserSchema = z.object({
     role: RoleSchema,
     email: z.email().optional(),
     username: z.string().min(2).max(100),
+    isActive: z.boolean().default(false),
     createdAt: z.date(),
+    emailVerified: z.boolean().default(false),
+    passwordHashed: z.string().min(8).max(128).optional(),
     updatedAt: z.date().optional().nullable(),
     lastLoginAt: z.date().optional().nullable(),
 });
@@ -47,6 +50,9 @@ export const UserConverter: FirestoreDataConverter<User> = {
             updatedAt: toDate(data.updatedAt),
             lastLoginAt:
                 data.lastLoginAt == null ? null : toDate(data.lastLoginAt),
+            isActive: data?.isActive ?? false,
+            emailVerified: data.emailVerified ?? false,
+            passwordHashed: data.passwordHashed,
         };
 
         const parsed = UserSchema.safeParse(candidate);

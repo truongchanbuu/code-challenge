@@ -1,14 +1,14 @@
 import type { Role } from "@/schemas/user.schema";
 
 const KEY = {
-  token: "token",
+  accessToken: "accessToken",
   role: "role",
   phoneNumber: "phoneNumber",
 };
 
 export const storage = {
-  get token(): string | null {
-    return localStorage.getItem(KEY.token);
+  get accessToken(): string | null {
+    return localStorage.getItem(KEY.accessToken);
   },
   get role(): Role | null {
     const r = localStorage.getItem(KEY.role);
@@ -18,8 +18,10 @@ export const storage = {
     return localStorage.getItem(KEY.phoneNumber);
   },
 
-  set token(v: string | null) {
-    v ? localStorage.setItem(KEY.token, v) : localStorage.removeItem(KEY.token);
+  set accessToken(v: string | null) {
+    v
+      ? localStorage.setItem(KEY.accessToken, v)
+      : localStorage.removeItem(KEY.accessToken);
   },
   set role(v: Role | null) {
     v ? localStorage.setItem(KEY.role, v) : localStorage.removeItem(KEY.role);
@@ -35,16 +37,16 @@ export const storage = {
     phoneNumber?: string | null;
     accessToken: string;
   }) {
-    this.token = data.accessToken;
+    this.accessToken = data.accessToken;
     this.role = data.role;
     this.phoneNumber = data.phoneNumber ?? null;
   },
   clear() {
-    localStorage.removeItem(KEY.token);
+    localStorage.removeItem(KEY.accessToken);
     localStorage.removeItem(KEY.role);
     localStorage.removeItem(KEY.phoneNumber);
   },
   isAuthed(): boolean {
-    return !!this.token;
+    return !!this.accessToken;
   },
 };

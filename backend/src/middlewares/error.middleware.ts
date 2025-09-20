@@ -13,7 +13,7 @@ export function errorHandler(
     err: AppError,
     req: Request,
     res: Response,
-    _next: NextFunction
+    next: NextFunction
 ) {
     const status = err?.statusCode ?? 500;
 

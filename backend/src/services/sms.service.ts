@@ -14,6 +14,10 @@ export class SmsNotifier implements OtpNotifier {
         this.messagingServiceSid = config?.sms?.messagingServiceSid;
     }
 
+    sendAccountSetupInvite(to: string, link: string): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+
     async sendLoginCode(
         to: string,
         otp: string,

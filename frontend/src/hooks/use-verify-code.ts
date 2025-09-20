@@ -29,7 +29,6 @@ export function useVerifyAccessCode() {
       });
 
       toast.success("Signed in!");
-
       const next = redirectByRole(role);
       navigate(next, { replace: true });
     },

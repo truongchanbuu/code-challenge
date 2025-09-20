@@ -57,7 +57,7 @@ export default function SmsSignInForm() {
       <button
         type="submit"
         className="btn btn-primary text-primary-content w-full rounded-md p-6 font-medium"
-        disabled={!isValid || isSubmitting}
+        disabled={!isValid || isSubmitting || sendSms.isPending}
       >
         {isSubmitting ? "Sending..." : "Next"}
       </button>

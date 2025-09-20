@@ -5,6 +5,7 @@ import InstructorDashboard from "@/features/instructors/components/InstructorDas
 import StudentDashboard from "@/features/student/components/StudentDashboard";
 import { PublicOnly, AuthGuard, RoleGuard } from "./guard";
 import NotFoundPage from "@/pages/NotFoundPage";
+import AccountSetup from "@/features/auth/components/SetupAccount";
 
 function PublicOnlyLayout() {
   return (
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
       { path: "/", element: <LoginPage /> },
       { path: "/login", element: <LoginPage /> },
       { path: "/verify/:channel", element: <OtpVerificationPage /> },
+      { path: "/account-setup", element: <AccountSetup /> },
     ],
   },
 

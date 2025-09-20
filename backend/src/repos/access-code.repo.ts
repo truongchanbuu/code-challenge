@@ -7,9 +7,11 @@ import {
     AccessCode,
     AccessCodeConverter,
     AccessCodeStatus,
+    AccessCodeType,
 } from "../models/access-code.model";
 import { normalizePhone } from "../utils/phone";
 import { AppError, ERROR_CODE } from "../config/error";
+import { normalizeTarget } from "../utils/access-code";
 
 const DEFAULT_LIMIT = 10;
 
@@ -26,18 +28,24 @@ export class AccessCodeRepo {
 
     async saveAccessCode(code: AccessCode): Promise<string> {
         try {
-            const normalizedPhone = normalizePhone(code.phone);
-            if (!normalizedPhone)
+            const type: AccessCodeType | undefined =
+                code.type ?? (code.phone ? "phone" : undefined);
+            let target =
+                code.target ?? (type === "phone" ? code.phone : undefined);
+            if (!type || !target)
                 throw new AppError(
                     "Insufficient data.",
                     400,
                     ERROR_CODE.VALIDATION
                 );
 
+            target = normalizeTarget(type, target);
+
             const accessCodeRef = this.accessCodeCollection.doc();
             await this.firestore.runTransaction(async (tx: Transaction) => {
                 const query = this.accessCodeCollection
-                    .where("phone", "==", normalizedPhone)
+                    .where("type", "==", type)
+                    .where("target", "==", target)
                     .where("status", "==", "active")
                     .orderBy("sentAt", "desc")
                     .limit(1);
@@ -52,7 +60,9 @@ export class AccessCodeRepo {
 
                 tx.set(accessCodeRef, {
                     userId: code.userId,
-                    phone: normalizedPhone,
+                    type,
+                    target,
+                    phone: type === "phone" ? target : null,
                     codeHash: code.codeHash,
                     attempts: code.attempts ?? 0,
                     maxAttempts: code.maxAttempts ?? 5,
@@ -96,15 +106,35 @@ export class AccessCodeRepo {
     ): Promise<{ id: string; data: AccessCode } | null> {
         try {
             const normalizedPhone = normalizePhone(phone);
-            if (!normalizedPhone)
+            if (!normalizedPhone) {
                 throw new AppError(
                     "Invalid phone.",
                     400,
                     ERROR_CODE.VALIDATION
                 );
+            }
+
+            return this.getLatestActiveByTarget("phone", normalizedPhone);
+        } catch (e) {
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to get latest active by phone",
+                500,
+                ERROR_CODE.INTERNAL_ERROR
+            );
+        }
+    }
+
+    async getLatestActiveByTarget(
+        type: AccessCodeType,
+        target: string
+    ): Promise<{ id: string; data: AccessCode } | null> {
+        try {
+            target = normalizeTarget(type, target);
 
             const snapshot = await this.accessCodeCollection
-                .where("phone", "==", normalizedPhone)
+                .where("type", "==", type)
+                .where("target", "==", target)
                 .where("status", "==", "active")
                 .orderBy("sentAt", "desc")
                 .limit(1)
@@ -116,7 +146,7 @@ export class AccessCodeRepo {
         } catch (e) {
             if (e instanceof AppError) throw e;
             throw new AppError(
-                "Failed to get latest active by phone",
+                "Failed to get latest active by target",
                 500,
                 ERROR_CODE.INTERNAL_ERROR
             );
@@ -155,34 +185,29 @@ export class AccessCodeRepo {
         }
     }
 
-    async canSend(
-        phone: string,
+    async canSendByTarget(
+        type: AccessCodeType,
+        target: string,
         cooldownMs: number
     ): Promise<{
         allowed: boolean;
         remainingTtlMs?: number;
         activeCodeId?: string;
     }> {
-        const normalizedPhone = normalizePhone(phone);
-        if (!normalizedPhone)
-            throw new AppError("Invalid phone.", 400, ERROR_CODE.VALIDATION);
-
-        const snapshot = await this.getLatestActiveByPhone(normalizedPhone);
-
+        const snapshot = await this.getLatestActiveByTarget(type, target);
         if (!snapshot) return { allowed: true };
+
         const data = snapshot.data;
-
-        const sentAtMs = new Date(data.sentAt).getTime();
         const now = Date.now();
+        const sentAtMs = new Date(data.sentAt).getTime();
+        const expMs = data.expiresAt ? new Date(data.expiresAt).getTime() : 0;
 
-        const expiresAtMs = data.expiresAt
-            ? new Date(data.expiresAt).getTime()
-            : 0;
-        if (expiresAtMs && expiresAtMs <= now)
+        if (expMs && expMs <= now) {
+            await this.expireCode(snapshot.id);
             return { allowed: true, activeCodeId: snapshot.id };
+        }
 
         const remainingTtlMs = sentAtMs + cooldownMs - now;
-
         return remainingTtlMs > 0
             ? { allowed: false, remainingTtlMs, activeCodeId: snapshot.id }
             : { allowed: true, activeCodeId: snapshot.id };

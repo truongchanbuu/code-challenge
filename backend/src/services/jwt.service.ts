@@ -44,11 +44,13 @@ export class JwtService {
         userId: string;
         role?: string;
         phone?: string;
+        email?: string;
         tokenVersion?: number;
     }) {
         const accessToken = this.signAccess(user.userId, {
             role: user.role,
             phone: user.phone,
+            email: user.email,
         });
         const refreshToken = this.signRefresh(
             user.userId,

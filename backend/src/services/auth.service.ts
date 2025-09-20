@@ -1,12 +1,16 @@
 import { createHmac, randomInt, timingSafeEqual } from "crypto";
-import { normalizePhone } from "../utils/phone";
 import { AccessCodeRepo } from "../repos/access-code.repo";
-import { AccessCode } from "../models/access-code.model";
+import { AccessCode, AccessCodeType } from "../models/access-code.model";
 import { UserRepo } from "../repos/user.repo";
 import { AppError, ERROR_CODE } from "../config/error";
 import { OtpNotifier } from "../repos/notifier";
 import { JwtService } from "./jwt.service";
 import { toDate } from "../utils/date";
+import {
+    getAvailableTarget,
+    isExactOneTargetValue,
+    normalizeTarget,
+} from "../utils/access-code";
 
 export class AuthService {
     private readonly OTP_TTL_IN_MINS: number;
@@ -54,32 +58,45 @@ export class AuthService {
         this.jwtService = jwtService;
     }
 
-    public async createAccessCode(phone: string) {
+    public async createAccessCode(payload: {
+        phoneNumber?: string;
+        email?: string;
+    }) {
         try {
-            const normalizedPhone = normalizePhone(phone);
-            if (!normalizedPhone) {
-                throw new AppError("Invalid data.", 400, ERROR_CODE.VALIDATION);
+            const { phoneNumber, email } = payload;
+            const isAvailableTarget = isExactOneTargetValue({
+                phoneNumber,
+                email,
+            });
+
+            if (!isAvailableTarget) {
+                throw new AppError(
+                    "Provide exactly one of phone or email",
+                    400,
+                    ERROR_CODE.VALIDATION
+                );
             }
 
+            const { type, target: rawTarget } = getAvailableTarget({
+                phoneNumber,
+                email,
+            });
+            const target = normalizeTarget(type, rawTarget);
+            const userId = await this.resolveUserId(type, target);
+
             const otp = this.getOtp6Code();
-            console.log(`otp: ${otp}`);
-            const codeHash = this.hashHmacOtp(
-                normalizedPhone,
-                otp,
-                this.OTP_SECRET
-            );
-
-            const userId =
-                await this.userRepo.getUserIdByPhone(normalizedPhone);
-
-            if (!userId)
-                throw new AppError("User not found", 404, ERROR_CODE.NOT_FOUND);
+            if (process.env.NODE_ENV !== "production") {
+                console.debug("[OTP]", otp);
+            }
+            const codeHash = this.hashHmacOtp(userId, otp, this.OTP_SECRET);
 
             const accessCode: AccessCode = {
                 userId,
+                type,
+                target,
+                phone: type === "phone" ? target : null,
                 codeHash,
                 status: "active",
-                phone: normalizedPhone,
                 maxAttempts: this.OTP_MAX_ATTEMPTS,
                 expiresAt: this.expiresAtFromNow(),
                 sentAt: new Date(),
@@ -89,15 +106,25 @@ export class AuthService {
             const accessCodeId =
                 await this.accessCodeRepo.saveAccessCode(accessCode);
             try {
-                await this.smsService.sendLoginCode(
-                    normalizedPhone,
-                    otp,
-                    this.OTP_TTL_IN_MINS
-                );
+                if (type === "phone") {
+                    await this.smsService.sendLoginCode(
+                        target,
+                        otp,
+                        this.OTP_TTL_IN_MINS
+                    );
+                } else {
+                    await this.emailService.sendLoginCode(
+                        target,
+                        otp,
+                        this.OTP_TTL_IN_MINS
+                    );
+                }
             } catch (e) {
                 await this.accessCodeRepo.expireCode(accessCodeId);
                 throw new AppError(
-                    "SMS delivery failed",
+                    type === "phone"
+                        ? "SMS delivery failed"
+                        : "Email delivery failed",
                     502,
                     ERROR_CODE.INTERNAL_ERROR
                 );
@@ -113,14 +140,38 @@ export class AuthService {
         }
     }
 
-    public async verifyAccessCode(phone: string, otp: string) {
+    public async verifyAccessCode(payload: {
+        phoneNumber?: string;
+        email?: string;
+        otp: string;
+    }) {
         try {
-            const normalized = normalizePhone(phone);
-            if (!normalized)
-                throw new AppError("Invalid data.", 400, ERROR_CODE.VALIDATION);
+            const { phoneNumber, email, otp } = payload;
+            const isAvailableTarget = isExactOneTargetValue({
+                phoneNumber,
+                email,
+            });
+
+            if (!isAvailableTarget) {
+                throw new AppError(
+                    "Provide exactly one of phoneNumber or email",
+                    400,
+                    ERROR_CODE.VALIDATION
+                );
+            }
+
+            if (!otp || !/^\d{6}$/.test(otp)) {
+                throw new AppError("Invalid code.", 400, ERROR_CODE.VALIDATION);
+            }
+
+            const { type, target: rawTarget } = getAvailableTarget({
+                phoneNumber,
+                email,
+            });
+            const target = normalizeTarget(type, rawTarget);
 
             const accessCode =
-                await this.accessCodeRepo.getLatestActiveByPhone(normalized);
+                await this.accessCodeRepo.getLatestActiveByTarget(type, target);
             if (!accessCode)
                 throw new AppError(
                     "Code not found.",
@@ -136,7 +187,7 @@ export class AuthService {
                 throw new AppError("Code expired.", 400, ERROR_CODE.VALIDATION);
             }
 
-            const ok = this.verifyHmacOtp(data.codeHash, normalized, otp);
+            const ok = this.verifyHmacOtp(data.codeHash, data.userId, otp);
             if (!ok) {
                 const retry = await this.accessCodeRepo.incrementAttempts(
                     id,
@@ -175,12 +226,14 @@ export class AuthService {
                     userId: user.userId,
                     role: user.role,
                     phone: user.phone,
+                    email: user.email,
                 });
 
             return {
                 user: {
                     userId: user.userId,
                     phone: user.phone,
+                    email: user.email,
                     role: user.role,
                 },
                 tokens: { accessToken, refreshToken },
@@ -196,26 +249,38 @@ export class AuthService {
         }
     }
 
+    private async resolveUserId(type: AccessCodeType, target: string) {
+        const userId =
+            type === "phone"
+                ? await this.userRepo.getUserIdByPhone(target)
+                : (await this.userRepo.getUserByEmail(target))?.userId;
+        if (!userId) {
+            throw new AppError("User not found", 404, ERROR_CODE.NOT_FOUND);
+        }
+        return userId;
+    }
+
     private getOtp6Code() {
         return String(randomInt(0, 1_000_000)).padStart(6, "0");
     }
 
     private hashHmacOtp(
-        phone: string,
-        code6: string,
+        userId: string,
+        otp: string,
         key: Buffer = this.OTP_SECRET
     ) {
-        const msg = `${phone}:${code6}`;
-        return createHmac("sha256", key).update(msg).digest("hex");
+        return createHmac("sha256", key)
+            .update(`${userId}:${otp}`)
+            .digest("hex");
     }
 
     private verifyHmacOtp(
         codeHash: string,
-        phone: string,
-        code6: string,
+        userId: string,
+        otp: string,
         key: Buffer = this.OTP_SECRET
     ) {
-        const calcHex = this.hashHmacOtp(phone, code6, key);
+        const calcHex = this.hashHmacOtp(userId, otp, key);
         const a = Buffer.from(codeHash, "hex");
         const b = Buffer.from(calcHex, "hex");
         return a.length === b.length && timingSafeEqual(a, b);

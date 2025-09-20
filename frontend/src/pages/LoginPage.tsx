@@ -3,7 +3,6 @@ import PasswordSignInForm from "@/features/auth/components/PasswordSignIn";
 import SmsSignInForm from "@/features/auth/components/SmsSignIn";
 import { Mail, LockKeyhole, Phone, ArrowLeft } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 const TAB_CONFIG = [
   {
@@ -29,27 +28,18 @@ const TAB_CONFIG = [
 type TabType = (typeof TAB_CONFIG)[number]["key"];
 
 export default function LoginPage() {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>("sms");
 
-  const onSubmit = () => {
-    navigate(`/verify/sms`);
-  };
   const onBack = () => window.history.back();
 
   const renderTabContent = () => {
     switch (activeTab) {
       case "sms":
-        return <SmsSignInForm onSubmitForm={onSubmit} />;
+        return <SmsSignInForm />;
       case "email":
-        return <EmailSignInForm onSubmitForm={onSubmit} />;
+        return <EmailSignInForm />;
       case "password":
-        return (
-          <PasswordSignInForm
-            onSubmitForm={onSubmit}
-            onForgotPassword={() => {}}
-          />
-        );
+        return <PasswordSignInForm />;
       default:
         return null;
     }

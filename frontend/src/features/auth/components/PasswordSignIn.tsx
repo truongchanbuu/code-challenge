@@ -7,13 +7,7 @@ import {
   type PasswordSignInValues,
 } from "@/schemas/auth.schema";
 
-export default function PasswordSignInForm({
-  onSubmitForm,
-  onForgotPassword,
-}: {
-  onSubmitForm: any;
-  onForgotPassword: any;
-}) {
+export default function PasswordSignInForm() {
   const {
     register,
     handleSubmit,
@@ -26,7 +20,6 @@ export default function PasswordSignInForm({
   });
 
   const onSubmit = async (data: PasswordSignInValues) => {
-    if (onSubmitForm) return onSubmitForm(data);
     console.log("submit:", data);
   };
 
@@ -61,7 +54,7 @@ export default function PasswordSignInForm({
         <button
           type="button"
           className="link link-primary no-underline"
-          onClick={onForgotPassword ?? (() => console.log("Forgot password"))}
+          onClick={() => console.log("Forgot password")}
         >
           Forgot password?
         </button>

@@ -4,8 +4,9 @@ import { Phone } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SmsSignInSchema, type SmsSignInValues } from "@/schemas/auth.schema";
+import { useSendAccessCode } from "@/hooks/use-send-access-code";
 
-export default function SmsSignInForm({ onSubmitForm }: { onSubmitForm: any }) {
+export default function SmsSignInForm() {
   const {
     register,
     handleSubmit,
@@ -18,9 +19,11 @@ export default function SmsSignInForm({ onSubmitForm }: { onSubmitForm: any }) {
     defaultValues: { phone: "" },
   });
 
-  const onSubmit = (data: any) => {
-    if (onSubmitForm) return onSubmitForm(data);
-    console.log("Email submitted:", data.email);
+  const sendSms = useSendAccessCode("sms");
+
+  const onSubmit = async (data: any) => {
+    const phone = data.phone;
+    sendSms.mutate(phone);
   };
 
   return (

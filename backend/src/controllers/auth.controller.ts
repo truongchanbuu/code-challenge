@@ -17,6 +17,10 @@ export class AuthController {
 
             return res.status(200).json({
                 ok: true,
+                data: {
+                    phoneNumber,
+                    email,
+                },
                 message: "If the phone exists, an access code has been sent.",
             });
         } catch (e) {

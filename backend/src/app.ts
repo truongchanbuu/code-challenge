@@ -12,11 +12,24 @@ export function createApp({
 }) {
     const app = express();
     const origins = config.origins;
+
     app.use(
         cors({
             origin: origins,
         })
     );
+
+    app.use((req, _res, next) => {
+        console.log(
+            "[BE] %s %s host=%s x-forwarded-host=%s",
+            req.method,
+            req.url,
+            req.headers.host,
+            req.headers["x-forwarded-host"]
+        );
+        next();
+    });
+
     app.use(express.json());
 
     app.use(scopePerRequest(container));
@@ -25,7 +38,7 @@ export function createApp({
     const authRoutes = container.resolve("authRoutes");
 
     app.use("/admin", adminRoutes.router);
-    app.use("/", authRoutes.router);
+    app.use("/api", authRoutes.router);
 
     app.use(notFoundHandler);
     app.use(errorHandler);

@@ -7,11 +7,7 @@ import {
   type EmailSignInValues,
 } from "@/schemas/auth.schema";
 
-export default function EmailSignInForm({
-  onSubmitForm,
-}: {
-  onSubmitForm: any;
-}) {
+export default function EmailSignInForm() {
   const {
     register,
     handleSubmit,
@@ -24,8 +20,7 @@ export default function EmailSignInForm({
   });
 
   const onSubmit = (data: any) => {
-    if (onSubmitForm) return onSubmitForm(data);
-    console.log("Email submitted:", data.email);
+    console.log("Email submitted:", data);
   };
 
   return (

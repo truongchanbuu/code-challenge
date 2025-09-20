@@ -10,6 +10,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { InputField } from "@/components/form/InputField";
 import { OtpSchema, type OtpValues } from "@/schemas/auth.schema";
 import { useParams, useSearchParams } from "react-router-dom";
+import { useSendAccessCode } from "@/hooks/use-send-access-code";
+import { useVerifyAccessCode } from "@/hooks/use-verify-code";
 
 export default function OtpVerificationPage() {
   const { channel } = useParams<{ channel: "sms" | "email" }>();
@@ -19,7 +21,6 @@ export default function OtpVerificationPage() {
     return <div className="p-4">Invalid channel</div>;
   }
 
-  const rid = searchParams.get("rid") || "";
   const to = searchParams.get("to") || "";
 
   const {
@@ -33,14 +34,17 @@ export default function OtpVerificationPage() {
     defaultValues: { code: "" },
   });
 
+  const sendOtp = useSendAccessCode(channel);
+  const verifyOtp = useVerifyAccessCode();
+
   const onBack = () => window.history.back();
 
   const onSubmit = async ({ code }: OtpValues) => {
-    console.log("validate OTP:", { channel, rid, code });
+    verifyOtp.mutate(code);
   };
 
   const onResend = async () => {
-    console.log("resend OTP:", { channel, rid, to });
+    sendOtp.mutate(to);
   };
 
   const title = channel === "sms" ? "Phone verification" : "Email verification";

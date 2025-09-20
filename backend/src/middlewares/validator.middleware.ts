@@ -10,6 +10,7 @@ function checkSchema(schemas: any) {
             if (schemas.params) req.params = schemas.params.parse(req.params);
             next();
         } catch (e) {
+            console.error(e);
             if (e instanceof ZodError) {
                 const errorMessages = e.issues.map((issue: any) => ({
                     message: `${issue.path.join(".")} is ${issue.message}`,
@@ -24,7 +25,7 @@ function checkSchema(schemas: any) {
                     )
                 );
             }
-            next(e);
+            return next(e);
         }
     };
 }

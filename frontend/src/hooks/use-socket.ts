@@ -2,7 +2,11 @@ import { storage } from "@/utils/storage";
 import { useEffect, useMemo } from "react";
 import { useSocket } from "socket.io-react-hook";
 
-type PresenceEvent = { phoneNumber: string; online: boolean };
+export type PresenceEvent = {
+  userId: string;
+  phoneNumber?: string | null;
+  online: boolean;
+};
 
 export function useAppSocket(opts?: {
   onPresence?: (e: PresenceEvent) => void;
@@ -14,10 +18,12 @@ export function useAppSocket(opts?: {
       /\/socket\.io.*$/,
       "",
     );
+
     if (explicit) return explicit;
     const base = import.meta.env.VITE_API_BASE_URL;
     return base ? base.replace(/\/api\/?$/, "") : undefined;
   }, []);
+  console.log("[FE] socket url", urlOrNs, "hasToken?", !!token);
 
   const { socket, connected, error } = useSocket(urlOrNs, {
     enabled: !!token,
@@ -29,14 +35,29 @@ export function useAppSocket(opts?: {
 
   useEffect(() => {
     if (!socket) return;
+    const onErr = (e: any) =>
+      console.error("[FE] connect_error", e?.message || e);
+    const onConnect = () => console.log("[FE] connected", socket.id);
+    const onDisconnect = (r: any) => console.log("[FE] disconnected", r);
+    socket.on("connect_error", onErr);
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    return () => {
+      socket.off("connect_error", onErr);
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+    };
+  }, [socket]);
+
+  useEffect(() => {
+    if (!socket) return;
 
     const onPresence = (e: PresenceEvent) => opts?.onPresence?.(e);
     socket.on("presence", onPresence);
 
-    // xin snapshot ngay khi kết nối
-    socket.emit("presence:list", (res: { online: string[] }) => {
-      res?.online?.forEach((p) =>
-        opts?.onPresence?.({ phoneNumber: p, online: true }),
+    socket.emit("presence:list", (res: { onlineUserIds: string[] }) => {
+      res?.onlineUserIds?.forEach((uid) =>
+        opts?.onPresence?.({ userId: uid, phoneNumber: null, online: true }),
       );
     });
 

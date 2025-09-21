@@ -3,7 +3,7 @@ import type http from "http";
 
 export type VerifyTokenFn = (
     token?: string
-) => Promise<{ phone: string; role?: string } | null>;
+) => Promise<{ userId: string; phoneNumber?: string; role?: string } | null>;
 
 export interface SocketInit {
     httpServer: http.Server;
@@ -17,93 +17,89 @@ export class SocketServer {
     constructor({ httpServer, verifyToken }: SocketInit) {
         this.io = new Server(httpServer, {
             path: "/socket.io",
-            cors: { origin: ["*"], credentials: true },
+            cors: { origin: ["*"], credentials: false },
             transports: ["websocket", "polling"],
         });
 
         this.io.use(async (socket, next) => {
             try {
-                let phone =
-                    (socket.handshake.auth as any)?.phoneNumber ||
-                    (socket.handshake.query as any)?.phoneNumber;
-                const authHeader = socket.handshake.headers.authorization as
+                const tokenFromAuth = (socket.handshake.auth as any)?.token as
                     | string
                     | undefined;
-                const token = authHeader?.replace(/^Bearer\s+/i, "");
-                if (!phone && verifyToken && token) {
+                const tokenFromHeader = (
+                    socket.handshake.headers.authorization as string | undefined
+                )?.replace(/^Bearer\s+/i, "");
+                const token = tokenFromAuth || tokenFromHeader;
+
+                let userId: string | undefined;
+                let phone: string | undefined;
+
+                if (verifyToken && token) {
                     const u = await verifyToken(token);
-                    phone = u?.phone;
+                    userId = u?.userId;
+                    phone = u?.phoneNumber;
                     if (u?.role) socket.data.role = u.role;
                 }
-                if (!phone || typeof phone !== "string")
-                    return next(new Error("UNAUTHORIZED"));
-                socket.data.phoneNumber = phone;
+
+                if (!userId) return next(new Error("UNAUTHORIZED"));
+
+                socket.data.userId = userId;
+                if (phone) socket.data.phoneNumber = phone;
                 next();
-            } catch {
+            } catch (e) {
+                console.error("[SOCKET] middleware error", e);
                 next(new Error("UNAUTHORIZED"));
             }
         });
 
         this.io.on("connection", (socket) => {
-            const phone: string = socket.data.phoneNumber;
-            socket.join(`phone:${phone}`);
+            const userId: string = socket.data.userId;
+            const phone: string | undefined = socket.data.phoneNumber;
 
-            this.io.emit("presence", { phoneNumber: phone, online: true });
+            const userRoom = `user:${userId}`;
+            const before =
+                this.io.sockets.adapter.rooms.get(userRoom)?.size ?? 0;
+            socket.join(userRoom);
+            if (phone) socket.join(`phone:${phone}`);
+            const after =
+                this.io.sockets.adapter.rooms.get(userRoom)?.size ?? 0;
+
+            if (before === 0) {
+                this.io.emit("presence", {
+                    userId,
+                    phoneNumber: phone ?? null,
+                    online: true,
+                });
+            }
+
             socket.on(
                 "presence:list",
-                (cb?: (res: { online: string[] }) => void) => {
-                    const online = new Set<string>();
+                (cb?: (res: { onlineUserIds: string[] }) => void) => {
+                    const set = new Set<string>();
                     for (const [, s] of this.io.sockets.sockets) {
-                        const p = (s as any).data?.phoneNumber;
-                        if (p) online.add(p);
+                        const uid = (s as any).data?.userId;
+                        if (uid) set.add(uid);
                     }
-                    cb?.({ online: Array.from(online) });
+                    cb?.({ onlineUserIds: Array.from(set) });
                 }
             );
 
-            socket.on(
-                "room:join",
-                (roomId: string, cb?: (ok: boolean) => void) => {
-                    if (!roomId) return cb?.(false);
-                    socket.join(roomId);
-                    cb?.(true);
-                }
-            );
-
-            socket.on(
-                "chat:send",
-                (roomId: string, text: string, cb?: (res: any) => void) => {
-                    const msg = (text ?? "").trim();
-                    if (!roomId || !msg)
-                        return cb?.({ ok: false, error: "BAD_INPUT" });
-                    const payload = {
-                        roomId,
-                        from: phone,
-                        text: msg,
-                        at: Date.now(),
-                    };
-                    this.io.to(roomId).emit("chat:message", payload);
-                    cb?.({ ok: true, data: payload });
-                }
-            );
-
-            socket.on("lesson:subscribe", (lessonId: string) => {
-                if (lessonId) socket.join(`lesson:${lessonId}`);
-            });
-
-            socket.on("disconnect", (reason) => {
-                const room = this.io.sockets.adapter.rooms.get(
-                    `phone:${phone}`
-                );
-                const remaining = room?.size ?? 0;
+            socket.on("disconnect", () => {
+                const remaining =
+                    this.io.sockets.adapter.rooms.get(userRoom)?.size ?? 0;
                 if (remaining === 0) {
                     this.io.emit("presence", {
-                        phoneNumber: phone,
+                        userId,
+                        phoneNumber: phone ?? null,
                         online: false,
                     });
                 }
             });
         });
+    }
+
+    emitToUser(userId: string, event: string, payload: any) {
+        this.io.to(`user:${userId}`).emit(event, payload);
     }
 
     emitToPhone(phone: string, event: string, payload: any) {

@@ -1,34 +1,51 @@
+import http, { Server } from "http";
 import { asFunction, asValue } from "awilix";
 import { createApp } from "./app";
 import { createConfigContainer } from "./container";
 import { SocketServer } from "./libs/socket";
-import { Server } from "http";
-
-let server: Server;
 
 async function bootstrap() {
     try {
         const container = createConfigContainer();
         const config = container.resolve("config");
 
-        container.register({ httpServer: asValue(server) });
+        const app = createApp({ config, container });
+
+        const httpServer: Server = http.createServer(app);
+
+        container.register({ httpServer: asValue(httpServer) });
         container.register({
             socketServer: asFunction(
                 ({ httpServer, jwtService }) =>
                     new SocketServer({
                         httpServer,
-                        verifyToken: async (t?: string) =>
-                            t ? await jwtService.verifyAccess(t) : null,
+                        verifyToken: async (t?: string) => {
+                            try {
+                                if (!t) return null;
+                                const p = await jwtService.verifyAccess(t);
+                                return {
+                                    userId: p?.sub,
+                                    phoneNumber: p?.phoneNumber || null,
+                                    role: p?.role || null,
+                                };
+                            } catch {
+                                return null;
+                            }
+                        },
                     })
             ).singleton(),
         });
 
-        const app = createApp({ config, container });
+        container.resolve<SocketServer>("socketServer");
 
         const PORT = config.port || 3000;
-        server = app.listen(PORT, () =>
-            console.log(`Server is running on http://localhost:${PORT}...`)
-        );
+        httpServer.listen(PORT, () => {
+            console.log(`Server is running on http://localhost:${PORT}...`);
+            console.log(
+                "[BOOT] http.upgrade listeners:",
+                httpServer.listeners("upgrade").map((fn) => fn.name)
+            );
+        });
     } catch (e) {
         console.error("Failed to start server.", e);
     }

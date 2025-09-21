@@ -30,10 +30,15 @@ export default function InstructorDashboard() {
   const [isAssignOpen, setAssignOpen] = useState(false);
 
   const [presence, setPresence] = useState<Record<string, boolean>>({});
-  const { connected } = useAppSocket({
-    onPresence: ({ phoneNumber, online }) =>
-      setPresence((m) => ({ ...m, [phoneNumber]: online })),
+  const { connected, socket } = useAppSocket({
+    onPresence: ({ userId, online }) => {
+      console.log(`u: ${userId} - ${online}`);
+      setPresence((m) => ({ ...m, [userId]: online }));
+    },
   });
+
+  socket?.on("presence", (e) => console.log("presence", e));
+  socket?.on("connect_error", (e) => console.error(e?.message));
 
   const toolbar = (
     <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -96,10 +101,6 @@ export default function InstructorDashboard() {
             <div className="opacity-70">Lessons placeholder</div>
           </div>
         )}
-
-        <div className="text-xs opacity-60">
-          Realtime: {connected ? "connected" : "disconnected"}
-        </div>
       </div>
 
       <AddStudentModal open={isAddOpen} onClose={() => setAddOpen(false)} />

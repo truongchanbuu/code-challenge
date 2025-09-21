@@ -57,14 +57,8 @@ export default function StudentsTable({
 
   const rows = useMemo(() => {
     return flat.map((raw: any) => {
-      const std = {
-        ...raw,
-        phoneNumber: raw?.phoneNumber ?? undefined,
-      };
-
-      const online =
-        std.phoneNumber != null ? presence?.[std.phoneNumber] : undefined;
-
+      const std = { ...raw };
+      const online = std.userId ? presence?.[std.userId] : undefined;
       return online != null
         ? { ...std, status: online ? "online" : (std.status ?? "offline") }
         : std;
@@ -221,7 +215,7 @@ export default function StudentsTable({
 
                   <td>
                     {std.status === "online" && (
-                      <span className="badge badge-success gap-1">
+                      <span className="badge badge-success gap-1 font-bold text-white">
                         <CheckCircle2 className="h-3.5 w-3.5" /> online
                       </span>
                     )}

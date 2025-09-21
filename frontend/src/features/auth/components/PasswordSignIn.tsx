@@ -1,4 +1,4 @@
-import { Mail, LockKeyhole, LoaderCircle } from "lucide-react";
+import { PersonStanding, LockKeyhole, LoaderCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { InputField } from "@/components/form/InputField";
@@ -6,6 +6,7 @@ import {
   PasswordSignInSchema,
   type PasswordSignInValues,
 } from "@/schemas/auth.schema";
+import { useLoginPassword } from "@/hooks/use-login-password";
 
 export default function PasswordSignInForm() {
   const {
@@ -16,11 +17,14 @@ export default function PasswordSignInForm() {
     resolver: zodResolver(PasswordSignInSchema),
     mode: "onChange",
     reValidateMode: "onChange",
-    defaultValues: { email: "", password: "" },
+    defaultValues: { username: "", password: "" },
   });
 
+  const loginPasswordMutation = useLoginPassword();
+
   const onSubmit = async (data: PasswordSignInValues) => {
-    console.log("submit:", data);
+    console.log({ data });
+    loginPasswordMutation.mutate(data);
   };
 
   return (
@@ -30,14 +34,12 @@ export default function PasswordSignInForm() {
       noValidate
     >
       <InputField
-        placeholder="abc@example.com"
-        leftIcon={<Mail size={18} />}
-        autoComplete="email"
-        inputMode="email"
-        type="email"
-        error={errors.email?.message}
+        placeholder="Your Username"
+        leftIcon={<PersonStanding size={18} />}
+        type="text"
+        error={errors.username?.message}
         required
-        {...register("email")}
+        {...register("username")}
       />
 
       <InputField

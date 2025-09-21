@@ -17,3 +17,8 @@ export const SetupAccountSchema = z.object({
     username: z.string().min(2).max(100),
     password: z.string().min(8).max(256),
 });
+
+export const LoginPasswordSchema = z.object({
+    username: z.string().min(3).max(100),
+    password: z.string().min(8).max(128),
+});

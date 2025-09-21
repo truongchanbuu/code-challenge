@@ -1,18 +1,27 @@
+import bcrypt from "bcrypt";
 import { NextFunction, Request, Response } from "express";
 import { AuthService } from "../services/auth.service";
 import { SetupAccountSchema } from "../models/student.schema";
 import { StudentService } from "../services/student.service";
+import { UserService } from "../services/user.service";
+import { JwtService } from "../services/jwt.service";
 
 export class AuthController {
-    private authService: AuthService;
-    private studentService: StudentService;
+    private readonly authService: AuthService;
+    private readonly studentService: StudentService;
+    private readonly userService: UserService;
+    private readonly jwtService: JwtService;
 
     constructor(deps: {
         authService: AuthService;
         studentService: StudentService;
+        userService: UserService;
+        jwtService: JwtService;
     }) {
         this.authService = deps.authService;
         this.studentService = deps.studentService;
+        this.userService = deps.userService;
+        this.jwtService = deps.jwtService;
     }
 
     async createAccessCode(req: Request, res: Response, next: NextFunction) {
@@ -65,6 +74,66 @@ export class AuthController {
             const parsed = SetupAccountSchema.parse(req.body);
             const data = await this.studentService.setup(parsed);
             return res.status(200).json({ ok: true, data });
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    async loginWithPassword(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { password, username: usernameRaw } = req.body;
+            const username = usernameRaw?.trim()?.toLowerCase() ?? "";
+
+            if (!password || !username) {
+                return res.status(400).json({
+                    ok: false,
+                    message: "Username & password are required.",
+                });
+            }
+
+            const user = await this.userService.findUserByUsername(username);
+            console.log(
+                `username- ${username} - ${password} -${user?.passwordHashed}`
+            );
+            if (!user || !user.passwordHashed) {
+                return res.status(401).json({
+                    ok: false,
+                    message: "Invalid username or password.",
+                });
+            }
+
+            const match = await bcrypt.compare(password, user.passwordHashed);
+            if (!match) {
+                return res.status(401).json({
+                    ok: false,
+                    message: "Invalid username or password.",
+                });
+            }
+
+            if (user.isBanned) {
+                return res
+                    .status(403)
+                    .json({ ok: false, message: "Account is suspended." });
+            }
+
+            const { accessToken, refreshToken } =
+                this.jwtService.issueTokenPair({
+                    userId: user.userId,
+                    role: user.role,
+                    phoneNumber: user.phoneNumber,
+                    email: user.email,
+                });
+
+            await this.userService.trackLogin(user.userId);
+            return res.status(200).json({
+                ok: true,
+                data: {
+                    userId: user.userId,
+                    role: user.role,
+                    phoneNumber: user.phoneNumber ?? null,
+                    tokens: { accessToken, refreshToken },
+                },
+            });
         } catch (e) {
             next(e);
         }

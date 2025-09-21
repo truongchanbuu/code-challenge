@@ -13,6 +13,7 @@ export const UserSchema = z.object({
     email: z.email().optional(),
     username: z.string().min(2).max(100),
     isActive: z.boolean().default(false),
+    isBanned: z.boolean().default(false),
     createdAt: z.date(),
     emailVerified: z.boolean().default(false),
     passwordHashed: z.string().min(8).max(128).optional(),
@@ -51,6 +52,7 @@ export const UserConverter: FirestoreDataConverter<User> = {
             lastLoginAt:
                 data.lastLoginAt == null ? null : toDate(data.lastLoginAt),
             isActive: data?.isActive ?? false,
+            isBanned: data?.isBanned ?? false,
             emailVerified: data.emailVerified ?? false,
             passwordHashed: data.passwordHashed,
         };

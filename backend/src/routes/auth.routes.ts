@@ -6,7 +6,11 @@ import {
     CreateAccessCodeDTO,
     ValidateAccessCodeDTO,
 } from "../models/access-code.dto";
-import { SetupAccountSchema } from "../models/student.schema";
+import {
+    LoginPasswordSchema,
+    SetupAccountSchema,
+} from "../models/student.schema";
+import z from "zod";
 
 export class AuthRoutes {
     private authController: AuthController;
@@ -34,6 +38,12 @@ export class AuthRoutes {
             "/setup-account",
             validate.body(SetupAccountSchema),
             this.authController.setupAccount.bind(this.authController)
+        );
+
+        this.router.post(
+            "/loginPassword",
+            validate.body(LoginPasswordSchema),
+            this.authController.loginWithPassword.bind(this.authController)
         );
     }
 }

@@ -41,22 +41,22 @@ export async function validateAccessCode(payload: {
       ? { phoneNumber: payload.value, accessCode: payload.code }
       : { email: payload.value, accessCode: payload.code };
 
-  const res = await fetch(url, {
+  const result = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 
-  if (!res.ok) {
+  if (!result.ok) {
     let msg = "Invalid or expired code";
     try {
-      const j = await res.json();
+      const j = await result.json();
       msg = j?.message || msg;
     } catch {}
     throw new Error(msg);
   }
 
-  return res.json();
+  return result.json();
 }
 
 export async function setupAccount(payload: any) {
@@ -84,26 +84,26 @@ export async function setupAccount(payload: any) {
   return result.json();
 }
 
-export function isJwt(t: string) {
-  return t.split(".").length === 3;
-}
+export async function loginPassword(payload: {
+  username: string;
+  password: string;
+}) {
+  const url = "/api/auth/loginPassword";
 
-export function getJwtExp(token: string): number | null {
-  try {
-    const [, payload] = token.split(".");
-    if (!payload) return null;
-    const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const json = JSON.parse(atob(b64));
-    return typeof json?.exp === "number" ? json.exp : null;
-  } catch {
-    return null;
+  const result = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!result.ok) {
+    let msg = "Invalid or expired code";
+    try {
+      const j = await result.json();
+      msg = j?.message || msg;
+    } catch {}
+    throw new Error(msg);
   }
-}
 
-export function isExpiredToken(token: string, skewSec = 10): boolean {
-  if (!isJwt(token)) return false;
-  const exp = getJwtExp(token);
-  if (!exp) return true;
-  const now = Math.floor(Date.now() / 1000);
-  return now + skewSec >= exp;
+  return result.json();
 }

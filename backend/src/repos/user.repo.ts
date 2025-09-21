@@ -161,6 +161,25 @@ export class UserRepo {
         }
     }
 
+    async getUserByUsername(username?: string): Promise<User | null> {
+        try {
+            if (!username) return null;
+            const snap = await this.userCollection
+                .where("username", "==", username.toLowerCase().trim())
+                .limit(1)
+                .get();
+            return snap.docs[0]?.data() ?? null;
+        } catch (e) {
+            console.error(`error: ${e}`);
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to get user by email.",
+                500,
+                ERROR_CODE.INTERNAL_ERROR
+            );
+        }
+    }
+
     async getUserByPhone(phoneNumber: string): Promise<User | null> {
         try {
             const key = normalizePhone(phoneNumber);
@@ -337,13 +356,12 @@ export class UserRepo {
         userId: string,
         data: {
             username: string;
-            passwordHash: string;
+            passwordHashed: string;
             emailVerified: boolean;
             updatedAt: Date;
         }
     ) {
-        console.log(`ref: ${JSON.stringify(data)}`);
-        const ref = this.userCollection.doc(userId);
-        await ref.set(data, { merge: true });
+        const userRef = this.userCollection.doc(userId);
+        await userRef.update(data);
     }
 }

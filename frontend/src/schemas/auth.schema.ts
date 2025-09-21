@@ -8,7 +8,7 @@ export const EmailSignInSchema = z.object({ email: z.email() });
 export type EmailSignInValues = z.infer<typeof EmailSignInSchema>;
 
 export const PasswordSignInSchema = z.object({
-  email: z.string().trim().email("Invalid email."),
+  username: z.string().min(3).max(100),
   password: z
     .string()
     .min(8, "Password has at least 8 characters.")

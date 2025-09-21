@@ -1,17 +1,15 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import type { Role } from "@/schemas/user.schema";
-import { clearAuth, getRole, getToken } from "@/utils/auth";
-import { isExpiredToken } from "@/utils/api";
-
-const homeByRole = (role: Role | null) =>
-  role === "instructor" ? "/instructor/dashboard" : "/student/dashboard";
+import { clearAuth, getRole, getToken, redirectByRole } from "@/utils/auth";
+import { isExpiredToken } from "@/utils/auth";
 
 export function PublicOnly({ children }: { children: React.ReactNode }) {
   const token = getToken();
   const role = getRole();
   if (token && !isExpiredToken(token)) {
-    return <Navigate to={homeByRole(role)} replace />;
+    return <Navigate to={redirectByRole(role!)} replace />;
   }
+
   return <>{children}</>;
 }
 
@@ -41,6 +39,7 @@ export function RoleGuard({
 }) {
   const role = getRole();
   if (!role) return <Navigate to="/login" replace />;
-  if (!allow.includes(role)) return <Navigate to={homeByRole(role)} replace />;
+  if (!allow.includes(role))
+    return <Navigate to={redirectByRole(role)} replace />;
   return <>{children ?? <Outlet />}</>;
 }

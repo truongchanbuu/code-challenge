@@ -101,6 +101,14 @@ export class StudentService {
             throw new AppError("Invalid input", 400, ERROR_CODE.VALIDATION);
         }
 
+        const existingUser = await this.userRepo.getUserByUsername(username);
+        if (existingUser)
+            throw new AppError(
+                "Username is already in use.",
+                409,
+                ERROR_CODE.CONFLICT
+            );
+
         const tokenHash = sha256Hex(`${this.tokenSecret}:${token}`);
         const setupToken = await this.setupTokenRepo.consumeByHash(tokenHash);
         const user = await this.userRepo.getUserById(setupToken.userId);
@@ -108,13 +116,11 @@ export class StudentService {
             throw new AppError("User not found.", 404, ERROR_CODE.NOT_FOUND);
 
         const saltRounds = this.bcryptSaltRounds;
-        const passwordHash = await bcrypt.hash(password, saltRounds);
-
-        console.log(`service: ${passwordHash} - ${username}`);
+        const passwordHashed = await bcrypt.hash(password, saltRounds);
 
         await this.userRepo.updateAfterAccountSetup(user.userId, {
             username,
-            passwordHash,
+            passwordHashed,
             emailVerified: true,
             updatedAt: new Date(),
         });

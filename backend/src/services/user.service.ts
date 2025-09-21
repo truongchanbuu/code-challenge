@@ -32,4 +32,46 @@ export class UserService {
             );
         }
     }
+
+    async findUserByEmail(email: string) {
+        try {
+            return await this.userRepo.getUserByEmail(email);
+        } catch (e) {
+            console.error(e);
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to get user by email.",
+                500,
+                ERROR_CODE.INTERNAL_ERROR
+            );
+        }
+    }
+
+    async findUserByUsername(username: string) {
+        try {
+            return await this.userRepo.getUserByUsername(username);
+        } catch (e) {
+            console.error(e);
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to get user by username.",
+                500,
+                ERROR_CODE.INTERNAL_ERROR
+            );
+        }
+    }
+
+    async trackLogin(userId: string) {
+        try {
+            await this.userRepo.trackLoginTime(userId);
+        } catch (e) {
+            console.error(e);
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to track user login.",
+                500,
+                ERROR_CODE.INTERNAL_ERROR
+            );
+        }
+    }
 }

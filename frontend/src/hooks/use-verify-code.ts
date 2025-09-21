@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { validateAccessCode } from "@/utils/api";
 import type { Channel } from "@/schemas/otp.schema";
 import { storage } from "@/utils/storage";
+import { redirectByRole } from "@/utils/auth";
 
 export function useVerifyAccessCode() {
   const [sp] = useSearchParams();
@@ -40,8 +41,4 @@ export function useVerifyAccessCode() {
       toast.error(msg);
     },
   });
-}
-
-function redirectByRole(role: string) {
-  return role === "instructor" ? "/instructor/dashboard" : "/student/dashboard";
 }

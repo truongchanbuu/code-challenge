@@ -19,6 +19,7 @@ export const UserSchema = z.object({
     passwordHashed: z.string().min(8).max(128).optional(),
     updatedAt: z.date().optional().nullable(),
     lastLoginAt: z.date().optional().nullable(),
+    instructor: z.string().optional().nullable(),
 });
 
 export type User = z.infer<typeof UserSchema>;
@@ -34,6 +35,7 @@ export const UserConverter: FirestoreDataConverter<User> = {
             createdAt: user.createdAt ?? FieldValue.serverTimestamp(),
             updatedAt: user.updatedAt ?? FieldValue.serverTimestamp(),
             lastLoginAt: user.lastLoginAt ?? null,
+            instructor: user.instructor ?? null,
         };
 
         return doc;
@@ -55,6 +57,7 @@ export const UserConverter: FirestoreDataConverter<User> = {
             isBanned: data?.isBanned ?? false,
             emailVerified: data.emailVerified ?? false,
             passwordHashed: data.passwordHashed,
+            instructor: data.instructor ?? null,
         };
 
         const parsed = UserSchema.safeParse(candidate);

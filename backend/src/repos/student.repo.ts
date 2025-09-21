@@ -1,3 +1,1 @@
-export class StudentRepo {
-    
-}
+export class StudentRepo {}

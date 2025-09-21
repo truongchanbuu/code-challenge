@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { requireAuth, requireRoles } from "../middlewares/auth.middleware";
 import { AdminController } from "../controllers/admin.controller";
 import { validate } from "../middlewares/validator.middleware";
 import { CreateUserDTOSchema } from "../models/user.dto";

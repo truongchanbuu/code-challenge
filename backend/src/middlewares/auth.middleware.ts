@@ -20,10 +20,12 @@ export const requireAuth = (
     const token = authorization.startsWith("Bearer ")
         ? authorization.slice(7)
         : "";
+
     if (!token)
         return next(new AppError("Unauthorized", 401, ERROR_CODE.UNAUTHORIZED));
     try {
         const payload = jwtService.verifyAccess(token) as any;
+
         if (!payload?.sub || !payload?.role) {
             return next(
                 new AppError("Unauthorized", 401, ERROR_CODE.UNAUTHORIZED)
@@ -52,3 +54,7 @@ export const requireRoles = (...roles: Role[]) => {
         next();
     };
 };
+
+export function getAuthUser(req: Request, res: Response) {
+    return (res.locals as any).auth;
+}

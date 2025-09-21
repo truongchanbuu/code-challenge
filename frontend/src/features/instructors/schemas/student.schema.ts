@@ -11,6 +11,18 @@ export const AddStudentSchema = z.object({
   instructor: PhoneSchema,
 });
 
+export const EditStudentSchema = z.object({
+  username: z
+    .string({ error: "Invalid username." })
+    .min(3, { error: "Username should be at least 3 characters" })
+    .max(100, { error: "Too long!" })
+    .optional(),
+  email: z.email({ error: "Invalid email" }).optional(),
+  phoneNumber: PhoneSchema.optional(),
+});
+
+export type EditStudentValues = z.infer<typeof EditStudentSchema>;
+
 export type AddStudentValues = z.infer<typeof AddStudentSchema>;
 
 export const PasswordAccountSchema = z

@@ -2,9 +2,9 @@ import { Router } from "express";
 import { StudentController } from "../controllers/student.controller";
 import { validate } from "../middlewares/validator.middleware";
 import { AddStudentSchema } from "../models/student.schema";
+import { requireAuth, requireRoles } from "../middlewares/auth.middleware";
 
 export class StudentRoutes {
-    private studentController: StudentController;
     public router: Router;
 
     constructor({
@@ -13,12 +13,33 @@ export class StudentRoutes {
         studentController: StudentController;
     }) {
         this.router = Router();
-        this.studentController = studentController;
+
+        this.router.put(
+            "/:phoneNumber",
+            requireAuth,
+            requireRoles("instructor"),
+            studentController.updateStudent.bind(studentController)
+        );
+        this.router.delete(
+            "/:phoneNumber",
+            requireAuth,
+            requireRoles("instructor"),
+            studentController.deleteStudent.bind(studentController)
+        );
 
         this.router.post(
             "/",
+            requireAuth,
+            requireRoles("instructor"),
             validate.body(AddStudentSchema),
-            this.studentController.addStudent.bind(this.studentController)
+            studentController.addStudent.bind(studentController)
+        );
+
+        this.router.get(
+            "/",
+            requireAuth,
+            requireRoles("instructor"),
+            studentController.getStudents.bind(studentController)
         );
     }
 }

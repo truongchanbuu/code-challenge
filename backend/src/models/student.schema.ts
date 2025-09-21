@@ -22,3 +22,11 @@ export const LoginPasswordSchema = z.object({
     username: z.string().min(3).max(100),
     password: z.string().min(8).max(128),
 });
+
+export const UpdateStudentSchema = z.object({
+    username: z.string().min(2).max(100).optional(),
+    phoneNumber: PhoneSchema.optional(),
+    email: z.string().email().optional(),
+});
+
+export type UpdateStudentDTO = z.infer<typeof UpdateStudentSchema>;

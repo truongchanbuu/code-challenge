@@ -3,15 +3,11 @@ import { useEffect, useMemo } from "react";
 import { useSocket } from "socket.io-react-hook";
 
 type PresenceEvent = { phoneNumber: string; online: boolean };
-type LessonDoneEvent = { phoneNumber: string; lessonId: string };
 
-type Opts = {
+export function useAppSocket(opts?: {
   onPresence?: (e: PresenceEvent) => void;
-  onLessonDone?: (e: LessonDoneEvent) => void;
-};
-
-export function useAppSocket(opts?: Opts) {
-  const token = storage?.token ?? null;
+}) {
+  const token = storage.accessToken;
 
   const urlOrNs = useMemo(() => {
     const explicit = import.meta.env.VITE_SOCKET_URL?.replace(
@@ -33,21 +29,21 @@ export function useAppSocket(opts?: Opts) {
 
   useEffect(() => {
     if (!socket) return;
-    const onPresence = (e: PresenceEvent) => opts?.onPresence?.(e);
-    const onDone = (e: LessonDoneEvent) => opts?.onLessonDone?.(e);
 
+    const onPresence = (e: PresenceEvent) => opts?.onPresence?.(e);
     socket.on("presence", onPresence);
-    socket.on("lesson:done", onDone);
-    socket.on("connect_error", (err: any) =>
-      console.error("socket connect_error:", err?.message, err),
-    );
+
+    // xin snapshot ngay khi kết nối
+    socket.emit("presence:list", (res: { online: string[] }) => {
+      res?.online?.forEach((p) =>
+        opts?.onPresence?.({ phoneNumber: p, online: true }),
+      );
+    });
 
     return () => {
       socket.off("presence", onPresence);
-      socket.off("lesson:done", onDone);
-      socket.off("connect_error");
     };
-  }, [socket, opts?.onPresence, opts?.onLessonDone]);
+  }, [socket, opts?.onPresence]);
 
   return { connected, socket, error };
 }

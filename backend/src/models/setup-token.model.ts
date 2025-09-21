@@ -1,6 +1,9 @@
 import z from "zod";
 import { toDate } from "../utils/date";
-import { QueryDocumentSnapshot } from "firebase-admin/firestore";
+import {
+    FirestoreDataConverter,
+    QueryDocumentSnapshot,
+} from "firebase-admin/firestore";
 
 export const SetupTokenPurposeSchema = z.enum(["account_setup"]);
 export type SetupTokenPurpose = z.infer<typeof SetupTokenPurposeSchema>;

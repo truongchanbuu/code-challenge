@@ -23,7 +23,6 @@ export default function PasswordSignInForm() {
   const loginPasswordMutation = useLoginPassword();
 
   const onSubmit = async (data: PasswordSignInValues) => {
-    console.log({ data });
     loginPasswordMutation.mutate(data);
   };
 

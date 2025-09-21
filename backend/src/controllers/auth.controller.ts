@@ -92,9 +92,6 @@ export class AuthController {
             }
 
             const user = await this.userService.findUserByUsername(username);
-            console.log(
-                `username- ${username} - ${password} -${user?.passwordHashed}`
-            );
             if (!user || !user.passwordHashed) {
                 return res.status(401).json({
                     ok: false,

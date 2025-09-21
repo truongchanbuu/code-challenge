@@ -10,7 +10,6 @@ import {
     LoginPasswordSchema,
     SetupAccountSchema,
 } from "../models/student.schema";
-import z from "zod";
 
 export class AuthRoutes {
     private authController: AuthController;

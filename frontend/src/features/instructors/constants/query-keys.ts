@@ -8,4 +8,5 @@ export const studentsKeys = {
     "detail",
     { phoneNumber },
   ],
+  infinite: (q: unknown) => ["students", "infinite", q] as const,
 };

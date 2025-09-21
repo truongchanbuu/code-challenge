@@ -3,7 +3,7 @@ export interface ApiResponse<T> {
   data: T;
   message: string;
   meta?: {
-    page: number;
+    nextCursor: string | null;
     pageSize: number;
     total: number;
   };

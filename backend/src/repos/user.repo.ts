@@ -8,6 +8,7 @@ import { User, UserConverter } from "../models/user.model";
 import { normalizePhone } from "../utils/phone";
 import { PhoneIndex, PhoneIndexConverter } from "../models/phone-index.model";
 import { AppError, ERROR_CODE } from "../config/error";
+import { SortType } from "../types/db";
 
 export class UserRepo {
     private firestore: Firestore;
@@ -200,6 +201,131 @@ export class UserRepo {
         }
     }
 
+    async listStudentsByInstructor({
+        instructorPhone,
+        query,
+        pageSize = 20,
+        sort = "username_asc",
+        cursor,
+    }: {
+        instructorPhone: string;
+        query?: string;
+        pageSize?: number;
+        sort?: SortType;
+        cursor?: string | null;
+    }) {
+        try {
+            if (!instructorPhone?.trim()) {
+                throw new AppError(
+                    "Invalid phone.",
+                    400,
+                    ERROR_CODE.VALIDATION
+                );
+            }
+
+            const normalized = normalizePhone(instructorPhone);
+            if (!normalized) {
+                throw new AppError(
+                    "Invalid phone.",
+                    400,
+                    ERROR_CODE.VALIDATION
+                );
+            }
+
+            pageSize = Math.min(100, Math.max(1, Math.floor(pageSize)));
+
+            let studentRef = this.userCollection
+                .where("role", "==", "student")
+                .where("instructor", "==", normalized);
+
+            let orderField: string = "username";
+            const hasQuery = !!query?.trim();
+            let prefix: string | null = null;
+
+            if (hasQuery) {
+                const raw = query!.trim();
+                if (raw.includes("@")) {
+                    orderField = "email";
+                    prefix = raw.toLowerCase();
+                } else if (/^[+\d]/.test(raw)) {
+                    orderField = "phoneNumber";
+                    prefix = raw;
+                } else {
+                    orderField = "username";
+                    prefix = raw;
+                }
+
+                studentRef = studentRef
+                    .orderBy(orderField, "asc")
+                    .where(orderField, ">=", prefix)
+                    .where(orderField, "<=", prefix + "\uf8ff");
+            } else {
+                if (sort === "createdAt_desc") {
+                    orderField = "createdAt";
+                    studentRef = studentRef.orderBy("createdAt", "desc");
+                } else if (sort === "username_desc") {
+                    orderField = "username";
+                    studentRef = studentRef.orderBy("username", "desc");
+                } else {
+                    orderField = "username";
+                    studentRef = studentRef.orderBy("username", "asc");
+                }
+            }
+
+            if (cursor) {
+                const { lastValue, lastId } = JSON.parse(
+                    Buffer.from(cursor, "base64").toString()
+                );
+                studentRef = studentRef.startAfter(lastValue, lastId);
+            }
+
+            const snapshot = await studentRef.limit(pageSize).get();
+
+            const items = snapshot.docs.map((d) => d.data());
+            const lastDoc =
+                snapshot.docs.length > 0
+                    ? snapshot.docs[snapshot.docs.length - 1]
+                    : null;
+
+            const nextCursor = lastDoc
+                ? Buffer.from(
+                      JSON.stringify({
+                          lastValue: lastDoc.get(orderField),
+                          lastId: lastDoc.id,
+                      })
+                  ).toString("base64")
+                : null;
+
+            let total: number | null = null;
+            try {
+                const base = this.userCollection
+                    .where("role", "==", "student")
+                    .where("instructor", "==", normalized);
+
+                const countRef = hasQuery
+                    ? base
+                          .where(orderField, ">=", prefix!)
+                          .where(orderField, "<=", prefix! + "\uf8ff")
+                    : base;
+
+                const agg = await countRef.count().get();
+                total = agg.data()?.count ?? null;
+            } catch {
+                total = null;
+            }
+
+            return { items, total, nextCursor };
+        } catch (e) {
+            console.error(e);
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to list students by instructor.",
+                500,
+                ERROR_CODE.INTERNAL_ERROR
+            );
+        }
+    }
+
     async updateUser(
         userId: string,
         data: Partial<User>
@@ -283,11 +409,10 @@ export class UserRepo {
                     payload.email = email.trim().toLowerCase();
                 }
 
-                tx.set(
-                    userRef,
-                    { ...payload, updatedAt: FieldValue.serverTimestamp() },
-                    { merge: true }
-                );
+                tx.update(userRef, {
+                    ...payload,
+                    updatedAt: FieldValue.serverTimestamp(),
+                });
             });
 
             return this.getUserById(userId);
@@ -313,11 +438,9 @@ export class UserRepo {
                     ERROR_CODE.NOT_FOUND
                 );
 
-            const payload: any = {
+            await userRef.update({
                 lastLoginAt: FieldValue.serverTimestamp(),
-            };
-
-            await userRef.set(payload, { merge: true });
+            });
         } catch (e) {
             console.error(e);
             if (e instanceof AppError) throw e;
@@ -361,7 +484,17 @@ export class UserRepo {
             updatedAt: Date;
         }
     ) {
-        const userRef = this.userCollection.doc(userId);
-        await userRef.update(data);
+        try {
+            const userRef = this.userCollection.doc(userId);
+            await userRef.update(data);
+        } catch (e) {
+            console.error(e);
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to delete user.",
+                500,
+                ERROR_CODE.INTERNAL_ERROR
+            );
+        }
     }
 }

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { StudentsQuery } from "../schemas/query.schema";
-import type { Student } from "@/schemas/user.schema";
 import { useAppSocket } from "@/hooks/use-socket";
 import SearchInput from "@/components/SearchInput";
 import AppNavbar from "@/components/AppNavBar";
@@ -10,39 +9,38 @@ import AddStudentModal from "./AddStudentModal";
 
 export default function InstructorDashboard() {
   const navigator = useNavigate();
-  const [tab, setTab] = useState<"students" | "lessons">("students");
+  const [tab, setTab] = useState<"students" | "lessons">(
+    () => (sessionStorage.getItem("tab") as any) || "students",
+  );
+
   const [query, setQuery] = useState<StudentsQuery>(() => {
     const raw = sessionStorage.getItem("studentsQuery");
     return raw
       ? JSON.parse(raw)
-      : { query: "", page: 1, pageSize: 10, sort: "name.asc" };
+      : { q: "", pageSize: 10, sort: "username_asc" };
   });
 
+  useEffect(() => sessionStorage.setItem("tab", tab), [tab]);
   useEffect(
     () => sessionStorage.setItem("studentsQuery", JSON.stringify(query)),
     [query],
   );
 
   const [isAddOpen, setAddOpen] = useState(false);
-  const [isEditOpen, setEditOpen] = useState(false);
-  const [isDelOpen, setDelOpen] = useState(false);
   const [isAssignOpen, setAssignOpen] = useState(false);
-  const [editing, setEditing] = useState<Student | null>(null);
 
   const [presence, setPresence] = useState<Record<string, boolean>>({});
   const { connected } = useAppSocket({
-    onPresence: (e: any) => setPresence((m) => ({ ...m, [e.phone]: e.online })),
-    onLessonDone: (e: any) => {},
+    onPresence: ({ phoneNumber, online }) =>
+      setPresence((m) => ({ ...m, [phoneNumber]: online })),
   });
 
-  // const studentsForAssign = useStudentsForAssign(query);
-
   const toolbar = (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+    <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
       <div className="flex-1">
         <SearchInput
           value={query.query ?? ""}
-          onChange={(v) => setQuery((q) => ({ ...q, q: v, page: 1 }))}
+          onChange={(v) => setQuery((q) => ({ ...q, query: v }))}
         />
       </div>
       <div className="flex gap-2">
@@ -59,10 +57,10 @@ export default function InstructorDashboard() {
   return (
     <div className="flex min-h-dvh flex-col">
       <AppNavbar />
-      <div className="mx-auto w-full max-w-7xl space-y-4 p-4">
+      <div className="mx-auto w-full max-w-7xl">
         {toolbar}
 
-        <div role="tablist" className="tabs tabs-bordered">
+        <div role="tablist" className="tabs tabs-bordered mt-3">
           <button
             role="tab"
             className={`tab ${tab === "students" ? "tab-active" : ""}`}
@@ -82,16 +80,11 @@ export default function InstructorDashboard() {
         {tab === "students" && (
           <StudentsTable
             query={query}
-            onQueryChange={(p) => setQuery((q) => ({ ...q, ...p }))}
-            onEdit={(std) => {
-              setEditing(std);
-              setEditOpen(true);
+            onQueryChange={(p: any) => {
+              setQuery((q) => ({ ...q, ...p }));
             }}
-            onDelete={(std) => {
-              setEditing(std);
-              setDelOpen(true);
-            }}
-            onChat={(std) =>
+            onChat={(std: any) =>
+              std.phoneNumber &&
               navigator(`/chat/${encodeURIComponent(std.phoneNumber)}`)
             }
             presence={presence}
@@ -104,38 +97,12 @@ export default function InstructorDashboard() {
           </div>
         )}
 
-        {/* status line */}
         <div className="text-xs opacity-60">
           Realtime: {connected ? "connected" : "disconnected"}
         </div>
       </div>
 
       <AddStudentModal open={isAddOpen} onClose={() => setAddOpen(false)} />
-      {/* <EditStudentModal
-        open={isEditOpen}
-        onClose={() => setEditOpen(false)}
-        student={editing}
-      /> */}
-      {/*<DeleteStudentDialog
-        open={isDelOpen}
-        onClose={() => setDelOpen(false)}
-        student={editing}
-      />
-      <AssignLessonModal
-        open={isAssignOpen}
-        onClose={() => setAssignOpen(false)}
-        students={studentsForAssign}
-      /> */}
     </div>
   );
 }
-
-// function useStudentsForAssign(q: StudentsQuery) {
-//   // separate fetch ignoring search to show full list in assign dialog (simple approach)
-//   const { data } = useQuery({
-//     queryKey: ["students-assign"],
-//     queryFn: () =>
-//       getStudents({ ...q, q: "", page: 1, pageSize: 100, sort: "name.asc" }),
-//   });
-//   return useMemo(() => (data?.ok ? data.data.items : []), [data]) as Student[];
-// }

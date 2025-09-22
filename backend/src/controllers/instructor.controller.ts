@@ -1,27 +1,27 @@
 import { Request, Response, NextFunction } from "express";
-import { StudentService } from "../services/student.service";
+import { InstructorService } from "../services/instructor.service";
 import { SortType } from "../types/db";
 import { UserService } from "../services/user.service";
 import { AppError, ERROR_CODE } from "../config/error";
 import { UpdateStudentSchema } from "../models/student.schema";
 import { getAuthUser } from "../middlewares/auth.middleware";
 
-export class StudentController {
-    private readonly studentService: StudentService;
+export class InstructorController {
+    private readonly instructorService: InstructorService;
     private readonly userService: UserService;
 
     constructor(deps: {
-        studentService: StudentService;
+        instructorService: InstructorService;
         userService: UserService;
     }) {
-        this.studentService = deps.studentService;
+        this.instructorService = deps.instructorService;
         this.userService = deps.userService;
     }
 
     async addStudent(req: Request, res: Response, next: NextFunction) {
         try {
             const { username, email, phoneNumber, instructor } = req.body;
-            const student = await this.studentService.addStudent(
+            const student = await this.instructorService.addStudent(
                 email,
                 phoneNumber,
                 username,
@@ -119,7 +119,7 @@ export class StudentController {
                 });
             }
 
-            const student = await this.studentService.updateStudent(
+            const student = await this.instructorService.updateStudent(
                 phoneNumber,
                 parsed.data
             );
@@ -135,7 +135,10 @@ export class StudentController {
             const { phoneNumber } = req.params;
             const currentUser = getAuthUser(req, res);
 
-            await this.studentService.deleteStudent(phoneNumber, currentUser);
+            await this.instructorService.deleteStudent(
+                phoneNumber,
+                currentUser
+            );
             return res.status(200).json({ ok: true });
         } catch (e) {
             next(e);

@@ -6,13 +6,16 @@ import type { AssignModalResult } from "../schemas/assignment.schema";
 const API = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
 export async function deleteStudent(phone: string): Promise<void> {
-  const result = await fetch(`${API}/students/${encodeURIComponent(phone)}`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${storage.accessToken}`,
+  const result = await fetch(
+    `${API}/instructor/students/${encodeURIComponent(phone)}`,
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${storage.accessToken}`,
+      },
     },
-  });
+  );
 
   if (!result.ok) throw new Error(await result.text());
 }
@@ -20,7 +23,7 @@ export async function deleteStudent(phone: string): Promise<void> {
 export async function addStudent(
   data: AddStudentValues,
 ): Promise<AddStudentResponse> {
-  const result = await fetch(`${API}/students`, {
+  const result = await fetch(`${API}/instructor/students`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -46,7 +49,7 @@ export async function editStudent(
   payload: any,
   signal?: AbortSignal,
 ) {
-  const res = await fetch(`${API}/students/${phoneNumber}`, {
+  const res = await fetch(`${API}/instructor/students/${phoneNumber}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -84,7 +87,7 @@ export async function fetchStudentsPage({
   params.set("sort", sort);
   if (cursor) params.set("cursor", cursor);
 
-  const res = await fetch(`${API}/students?${params.toString()}`, {
+  const res = await fetch(`${API}/instructor/students?${params.toString()}`, {
     method: "GET",
     signal,
     headers: {

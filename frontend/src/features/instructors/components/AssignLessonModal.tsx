@@ -4,7 +4,6 @@ import { normalizePhone } from "@/utils/phone";
 import type { StudentsQuery } from "@/features/instructors/schemas/query.schema";
 import { useStudentsInfiniteQuery } from "@/hooks/use-student-infos";
 import type { StudentBriefInfo } from "../schemas/student.schema";
-import type { AssignModalResult } from "../schemas/assignment.schema";
 import { useDebounced } from "@/hooks/use-debounce";
 import { useAssignLesson } from "@/hooks/use-student-management";
 import { toast } from "sonner";

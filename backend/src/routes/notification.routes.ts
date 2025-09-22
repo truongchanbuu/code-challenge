@@ -7,17 +7,17 @@ export class NotificationRoutes {
     constructor(deps: { notificationController: NotificationController }) {
         this.router = Router();
         this.router.get(
-            "/notificatipons",
+            "/",
             requireAuth,
             deps.notificationController.list.bind(deps.notificationController)
         );
         this.router.get(
-            "/notifications/unread-count",
+            "/unread-count",
             requireAuth,
             deps.notificationController.count.bind(deps.notificationController)
         );
         this.router.post(
-            "/notifications/:id/read",
+            "/:id/read",
             requireAuth,
             deps.notificationController.markRead.bind(
                 deps.notificationController

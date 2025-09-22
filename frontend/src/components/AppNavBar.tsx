@@ -31,7 +31,7 @@ export default function AppNavbar({
         </a>
       </div>
 
-      <div className="flex-none gap-2">
+      <div className="flex items-center gap-3">
         <NotificationBell />
 
         <div className="dropdown dropdown-end">

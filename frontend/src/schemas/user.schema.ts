@@ -1,5 +1,7 @@
 import { z } from "zod";
-import { AssignmentSchema, LessonSchema } from "./assignment.schema";
+import { AssignmentSchema } from "./assignment.schema";
+import { PhoneSchema } from "./phone.schema";
+import { LessonSchema } from "./lesson.schema";
 
 export const RoleSchema = z.enum(["student", "instructor"]);
 export type Role = z.infer<typeof RoleSchema>;
@@ -18,6 +20,7 @@ export const BaseUserSchema = z
     username: z.string().min(1, "username is required"),
     phoneNumber: z.string().min(1, "phoneNumber is required"),
     role: RoleSchema,
+    instructor: PhoneSchema,
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime().optional(),
     status: UserStatusSchema.optional(),
@@ -44,4 +47,5 @@ export const UserSchema = z.discriminatedUnion("role", [
   StudentSchema,
   InstructorSchema,
 ]);
+
 export type User = z.infer<typeof UserSchema>;

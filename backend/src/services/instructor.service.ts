@@ -13,7 +13,7 @@ import { User } from "../models/user.model";
 import { PhoneIndexRepo } from "../repos/phone-index.repo";
 import { normalizePhone } from "../utils/phone";
 
-export class StudentService {
+export class InstructorService {
     private readonly userRepo: UserRepo;
     private readonly phoneIndexRepo: PhoneIndexRepo;
     private readonly setupTokenRepo: SetupTokenRepo;

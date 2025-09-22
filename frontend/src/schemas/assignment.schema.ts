@@ -1,22 +1,49 @@
-import z from "zod";
+import { z } from "zod";
+import { PhoneSchema } from "./phone.schema";
+import { LessonIdSchema } from "./lesson.schema";
 
-export const LessonSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().optional().or(z.literal("")),
-});
+export const AssignmentStatusSchema = z.enum(["assigned", "done"]);
 
-export const AssignmentSchema = z.object({
-  id: z.string().uuid(),
-  studentId: z.string().min(1),
-  lesson: LessonSchema,
-  status: z.enum(["assigned", "in_progress", "done"]),
-  assignedAt: z.string().datetime(),
-  dueAt: z.iso.datetime().optional(),
-  submittedAt: z.iso.datetime().optional(),
-  score: z.number().min(0).max(100).optional(),
-  feedback: z.string().optional(),
-  updatedAt: z.string().datetime(),
-});
+export const AssignmentSchema = z
+  .object({
+    lessonId: LessonIdSchema,
+    title: z.string().min(1).max(200).trim(),
+    description: z.string().min(1).max(1000).trim(),
+    status: AssignmentStatusSchema,
+    assignedBy: PhoneSchema,
+    assignedAt: z.coerce.date(),
+    doneAt: z.coerce.date().nullable().optional(),
+    updatedAt: z.coerce.date(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.status === "done" && !v.doneAt) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["doneAt"],
+        message: "doneAt is required when status is 'done'.",
+      });
+    }
+    if (v.status === "assigned" && v.doneAt) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["doneAt"],
+        message: "doneAt must be null while status is 'assigned'.",
+      });
+    }
+    if (v.doneAt && v.doneAt < v.assignedAt) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["doneAt"],
+        message: "doneAt cannot be before assignedAt.",
+      });
+    }
+    if (v.updatedAt < v.assignedAt) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["updatedAt"],
+        message: "updatedAt cannot be before assignedAt.",
+      });
+    }
+  });
 
 export type Assignment = z.infer<typeof AssignmentSchema>;
-export type Lesson = z.infer<typeof LessonSchema>;

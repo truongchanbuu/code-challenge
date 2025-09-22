@@ -34,6 +34,7 @@ export class NotificationRepo {
 
             ids.push(notificationItemRef.id);
         }
+
         return ids;
     }
 
@@ -45,7 +46,7 @@ export class NotificationRepo {
             .limit(limit)
             .get();
         return snap.docs.map((doc: any) => {
-            const data = doc.data() as any;
+            const data = { ...doc.data(), id: doc.id };
             return {
                 ...data,
                 createdAt: data.createdAt?.toDate?.() ?? new Date(),

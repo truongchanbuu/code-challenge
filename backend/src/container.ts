@@ -13,9 +13,9 @@ import { AdminRoutes } from "./routes/admin.routes";
 import { UserService } from "./services/user.service";
 import { AdminController } from "./controllers/admin.controller";
 import { EmailNotifier } from "./services/email.service";
-import { StudentController } from "./controllers/student.controller";
+import { InstructorController } from "./controllers/instructor.controller";
 import { StudentRoutes } from "./routes/student.routes";
-import { StudentService } from "./services/student.service";
+import { InstructorService } from "./services/instructor.service";
 import { ApiRoutes } from "./routes/api.routes";
 import { SetupTokenRepo } from "./repos/setup-token.repo";
 import { PhoneIndexRepo } from "./repos/phone-index.repo";
@@ -60,13 +60,13 @@ export function createConfigContainer() {
 
         userService: asClass(UserService).singleton(),
         authService: asClass(AuthService).singleton(),
-        studentService: asClass(StudentService).singleton(),
+        instructorService: asClass(InstructorService).singleton(),
         lessonService: asClass(LessonService).singleton(),
         notificationService: asClass(NotificationService).singleton(),
 
         authController: asClass(AuthController).singleton(),
         adminController: asClass(AdminController).singleton(),
-        studentController: asClass(StudentController).singleton(),
+        instructorController: asClass(InstructorController).singleton(),
         lessonController: asClass(LessonController).singleton(),
         notificationController: asClass(NotificationController).singleton(),
 

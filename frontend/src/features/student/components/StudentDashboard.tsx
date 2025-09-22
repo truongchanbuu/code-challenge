@@ -1,177 +1,394 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useAppSocket, type PresenceEvent } from "@/hooks/use-socket";
-import { storage } from "@/utils/storage";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { z } from "zod";
 import {
-  PlugZap,
-  Plug,
-  RefreshCw,
-  Phone,
+  CheckCircle2,
   Circle,
-  CircleDashed,
+  CircleCheck,
+  Loader2,
+  SearchIcon,
 } from "lucide-react";
 
-export default function StudentDashboard() {
-  // Chỉ hiển thị demo; presence hiện dùng userId
-  const myPhone = useMemo(() => storage?.phoneNumber || null, []);
+import { useAppSocket } from "@/hooks/use-socket";
+import { storage } from "@/utils/storage";
+import { AssignmentSchema, type Assignment } from "@/schemas/assignment.schema";
+import AppNavbar from "@/components/AppNavBar";
+import { apiMe } from "../utils/api";
 
-  const [presenceLog, setPresenceLog] = useState<
-    Array<PresenceEvent & { ts: number }>
-  >([]);
+// -----------------------------
+// API helpers (MVP inline)
+// -----------------------------
+async function apiFetchAssignments(): Promise<Assignment[]> {
+  const r = await fetch("/student/myLessons", {
+    credentials: "include",
+    headers: storage.accessToken
+      ? { Authorization: `Bearer ${storage.accessToken}` }
+      : undefined,
+  });
+  if (!r.ok) throw new Error(`GET /student/myLessons ${r.status}`);
+  const j = await r.json();
 
-  const onPresence = useCallback((e: PresenceEvent) => {
-    console.log("[FE] presence <-", e); // DEBUG
-    setPresenceLog((prev) => [{ ...e, ts: Date.now() }, ...prev].slice(0, 50));
-  }, []);
+  const raw = Array.isArray(j?.data) ? j.data : [];
 
-  const { socket, connected } = useAppSocket({ onPresence });
+  const parsed = z.array(AssignmentSchema).safeParse(raw);
+  if (parsed.success) {
+    return [...parsed.data].sort(
+      (a, b) =>
+        new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime(),
+    );
+  } else {
+    const valid: Assignment[] = [];
+    let invalid = 0;
+    for (const it of raw) {
+      const one = AssignmentSchema.safeParse(it);
+      if (one.success) valid.push(one.data);
+      else invalid++;
+    }
 
-  // DEBUG: log connect/disconnect/error
+    valid.sort(
+      (a, b) =>
+        new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime(),
+    );
+
+    (valid as any).__invalidCount = invalid;
+    return valid;
+  }
+}
+
+async function apiMarkDone(lessonId: string): Promise<{
+  lessonId: string;
+  status: "done";
+  updatedAt: string;
+}> {
+  const r = await fetch("/student/markLessonDone", {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(storage.accessToken
+        ? { Authorization: `Bearer ${storage.accessToken}` }
+        : {}),
+    },
+    body: JSON.stringify({ lessonId }),
+  });
+  if (!r.ok) throw new Error(`POST /student/markLessonDone ${r.status}`);
+  const j = await r.json();
+  return j?.data;
+}
+
+export default function StudentAssignments() {
+  const qc = useQueryClient();
+
+  const {
+    data: list = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["student", "assignments"],
+    queryFn: apiFetchAssignments,
+    refetchOnWindowFocus: false,
+  });
+
+  const invalidCount: number = (list as any).__invalidCount ?? 0;
+
+  const [tab, setTab] = useState<"all" | "assigned" | "done">("all");
+  const [q, setQ] = useState("");
+
+  const filtered = useMemo(() => {
+    return list
+      .filter((l) => (tab === "all" ? true : l.status === tab))
+      .filter((l) =>
+        q.trim()
+          ? l.title.toLowerCase().includes(q.trim().toLowerCase())
+          : true,
+      );
+  }, [list, tab, q]);
+
+  const markDone = useMutation({
+    mutationFn: (lessonId: string) => apiMarkDone(lessonId),
+    onMutate: async (lessonId: string) => {
+      await qc.cancelQueries({ queryKey: ["student", "assignments"] });
+      const prev =
+        qc.getQueryData<Assignment[]>(["student", "assignments"]) || [];
+      const nowISO = new Date().toISOString();
+      const next = prev.map((assignment) =>
+        assignment.lessonId === lessonId
+          ? {
+              ...assignment,
+              status: "done" as const,
+              doneAt: new Date(nowISO),
+              updatedAt: new Date(nowISO),
+            }
+          : assignment,
+      );
+      qc.setQueryData(["student", "assignments"], next);
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["student", "assignments"], ctx.prev);
+    },
+    onSuccess: (res) => {
+      const updated = new Date(res.updatedAt);
+      qc.setQueryData<Assignment[]>(["student", "assignments"], (prev) => {
+        const arr = Array.isArray(prev) ? prev : [];
+        return arr.map((x) =>
+          x.lessonId === res.lessonId
+            ? {
+                ...x,
+                status: "done",
+                doneAt: updated,
+                updatedAt: updated,
+              }
+            : x,
+        );
+      });
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["student", "assignments"] });
+    },
+  });
+
+  const { data: me } = useQuery({
+    queryKey: ["me"],
+    queryFn: apiMe,
+    staleTime: 5 * 60_000,
+  });
+
+  const { socket } = useAppSocket();
   useEffect(() => {
     if (!socket) return;
-    const onConnect = () => console.log("[FE] socket connected", socket.id);
-    const onDisconnect = (r: any) => console.log("[FE] socket disconnected", r);
-    const onErr = (e: any) =>
-      console.error("[FE] connect_error", e?.message || e);
-    socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
-    socket.on("connect_error", onErr);
-    return () => {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-      socket.off("connect_error", onErr);
+    const onAssigned = () => {
+      qc.invalidateQueries({ queryKey: ["student", "assignments"] });
     };
-  }, [socket]);
-
-  const doDisconnect = () => {
-    console.log("[FE] click disconnect");
-    socket?.connected && socket.disconnect();
-  };
-  const doConnect = () => {
-    console.log("[FE] click connect");
-    !socket?.connected && socket?.connect();
-  };
-  const askSnapshot = () =>
-    socket?.emit("presence:list", (res: { onlineUserIds: string[] }) => {
-      console.log("[FE] presence:list <-", res); // DEBUG
-      setPresenceLog((prev) =>
-        [
-          ...res.onlineUserIds.map((uid) => ({
-            userId: uid,
-            phoneNumber: null,
-            online: true,
-            ts: Date.now(),
-          })),
-          ...prev,
-        ].slice(0, 50),
-      );
-    });
+    socket.on("lesson:assigned", onAssigned);
+    return () => {
+      socket.off("lesson:assigned", onAssigned);
+    };
+  }, [socket, qc]);
 
   return (
-    <div className="mx-auto w-full max-w-3xl p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Student Dashboard</h1>
-        <span className={`badge ${connected ? "badge-success" : ""}`}>
-          {connected ? "realtime: connected" : "realtime: disconnected"}
-        </span>
-      </div>
+    <div className="flex min-h-dvh flex-col">
+      <header>
+        <AppNavbar
+          userName={me?.username || "Student"}
+          onBellClick={() => {}}
+          onProfile={() => {}}
+          onSettings={() => {}}
+          onLogout={() => {}}
+        />
+      </header>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="card bg-base-100">
-          <div className="card-body">
-            <div className="flex items-center gap-2 text-sm opacity-70">
-              <Phone className="h-4 w-4" />
-              <span>Phone</span>
-            </div>
-            <div className="text-lg font-medium">
-              {myPhone ?? "(from token on server)"}
-            </div>
+      {/* Main content */}
+      <main className="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6">
+        <article
+          className="card border-base-300 bg-base-100 border"
+          aria-labelledby="assignments-title"
+        >
+          <header className="border-base-300 border-b p-4 sm:p-6">
+            <h2 id="assignments-title" className="sr-only">
+              My Lessons (Assignments)
+            </h2>
 
-            <div className="divider my-2" />
-
-            <div className="flex items-center gap-2">
-              {connected ? (
-                <>
-                  <Circle className="text-success h-3.5 w-3.5" />
-                  <span className="font-medium">Online</span>
-                </>
-              ) : (
-                <>
-                  <CircleDashed className="h-3.5 w-3.5" />
-                  <span className="opacity-80">Offline</span>
-                </>
-              )}
-            </div>
-
-            <div className="card-actions mt-4 flex gap-2">
-              <button
-                className="btn btn-sm"
-                onClick={doDisconnect}
-                disabled={!connected}
-              >
-                <Plug className="h-4 w-4" /> Disconnect
-              </button>
-              <button
-                className="btn btn-sm"
-                onClick={doConnect}
-                disabled={connected}
-              >
-                <PlugZap className="h-4 w-4" /> Connect
-              </button>
-              <button
-                className="btn btn-sm"
-                onClick={askSnapshot}
-                disabled={!connected}
-              >
-                <RefreshCw className="h-4 w-4" /> Snapshot
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="card bg-base-100">
-          <div className="card-body">
-            <div className="text-sm opacity-70">How to test</div>
-            <ul className="mt-2 list-disc pl-5 text-sm">
-              <li>
-                Mở InstructorDashboard (đang lắng nghe presence theo userId).
-              </li>
-              <li>Mở StudentDashboard này → Instructor thấy online.</li>
-              <li>Disconnect ở đây → Instructor thấy offline.</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div className="card bg-base-100 mt-4">
-        <div className="card-body">
-          <div className="flex items-center justify-between">
-            <h2 className="card-title">Presence events</h2>
-            <button
-              className="btn btn-ghost btn-xs"
-              onClick={() => setPresenceLog([])}
+            <section
+              aria-label="Filters"
+              className="mb-1 flex flex-col gap-3 sm:mb-0 sm:flex-row sm:items-center sm:justify-between"
             >
-              Clear
-            </button>
-          </div>
-          {presenceLog.length === 0 ? (
-            <div className="text-sm opacity-60">No events yet.</div>
-          ) : (
-            <ul className="space-y-2 text-sm">
-              {presenceLog.map((e, i) => (
-                <li key={i} className="flex items-center justify-between">
-                  <span className="font-mono">
-                    {e.userId}
-                    {e.phoneNumber ? ` · ${e.phoneNumber}` : ""}
-                  </span>
-                  <span className={`badge ${e.online ? "badge-success" : ""}`}>
-                    {e.online ? "online" : "offline"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+              <nav
+                role="tablist"
+                aria-label="Assignment status filter"
+                className="tabs tabs-bordered"
+              >
+                {(["all", "assigned", "done"] as const).map((t) => (
+                  <button
+                    key={t}
+                    role="tab"
+                    aria-selected={tab === t}
+                    className={`tab ${tab === t ? "tab-active" : ""}`}
+                    onClick={() => setTab(t)}
+                  >
+                    {t[0].toUpperCase() + t.slice(1)}
+                  </button>
+                ))}
+              </nav>
+
+              <div className="flex items-center gap-3">
+                <div className="relative w-full sm:w-64">
+                  <SearchIcon className="pointer-events-none absolute top-1/2 left-3 z-10 h-4 w-4 -translate-y-1/2 opacity-60" />
+                  <input
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Search by title..."
+                    className="input input-bordered w-full pl-9"
+                    aria-label="Search assignments by title"
+                  />
+                </div>
+              </div>
+            </section>
+          </header>
+
+          <section aria-live="polite" className="space-y-3 p-4 sm:p-6">
+            {isError && (
+              <div className="alert alert-error text-sm">
+                {(error as any)?.message || "Failed to load assignments."}
+              </div>
+            )}
+            {!isError && invalidCount > 0 && (
+              <div className="alert text-sm">
+                {invalidCount} assignment(s) were invalid and hidden (schema
+                check).
+              </div>
+            )}
+          </section>
+
+          <section
+            role="region"
+            aria-label="Assignment list"
+            className="overflow-x-auto px-4 pb-4 sm:px-6"
+          >
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th className="hidden md:table-cell">Description</th>
+                  <th>Status</th>
+                  <th className="hidden md:table-cell">Assigned</th>
+                  <th className="hidden lg:table-cell">Updated</th>
+                  <th className="text-right">Action</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {isLoading && (
+                  <>
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <tr key={`sk-${i}`} className="animate-pulse">
+                        <td>
+                          <div className="bg-base-300 h-4 w-40 rounded" />
+                        </td>
+                        <td className="hidden md:table-cell">
+                          <div className="bg-base-300 h-4 w-64 rounded" />
+                        </td>
+                        <td>
+                          <div className="bg-base-300 h-4 w-16 rounded" />
+                        </td>
+                        <td className="hidden md:table-cell">
+                          <div className="bg-base-300 h-4 w-28 rounded" />
+                        </td>
+                        <td className="hidden lg:table-cell">
+                          <div className="bg-base-300 h-4 w-28 rounded" />
+                        </td>
+                        <td className="text-right">
+                          <div className="bg-base-300 h-8 w-24 rounded" />
+                        </td>
+                      </tr>
+                    ))}
+                  </>
+                )}
+
+                {!isLoading && filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-10 text-center">
+                      <div className="mx-auto max-w-sm">
+                        <div className="mb-1 text-sm opacity-70">
+                          No lessons
+                        </div>
+                        <div className="text-xs opacity-60">
+                          New assignments from your instructor will show up
+                          here.
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+
+                {filtered.map((a) => {
+                  const isAssigned = a.status === "assigned";
+                  return (
+                    <tr key={a.lessonId}>
+                      <td className="font-medium">{a.title}</td>
+                      <td className="hidden md:table-cell">
+                        <div className="truncate opacity-80">
+                          {a.description}
+                        </div>
+                      </td>
+                      <td>
+                        {a.status === "done" ? (
+                          <span className="badge badge-primary gap-1">
+                            <CircleCheck className="h-3.5 w-3.5" />
+                            done
+                          </span>
+                        ) : (
+                          <span className="badge gap-1">
+                            <Circle className="h-3.5 w-3.5" />
+                            assigned
+                          </span>
+                        )}
+                      </td>
+                      <td className="hidden md:table-cell">
+                        <span className="text-xs opacity-70">
+                          {new Date(a.assignedAt).toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="hidden lg:table-cell">
+                        <span className="text-xs opacity-70">
+                          {new Date(a.updatedAt).toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="text-right">
+                        {isAssigned ? (
+                          <button
+                            className="btn btn-sm"
+                            disabled={markDone.isPending}
+                            onClick={() => markDone.mutate(a.lessonId)}
+                            title="Mark as done"
+                          >
+                            {markDone.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="h-4 w-4" />
+                            )}
+                            Mark done
+                          </button>
+                        ) : (
+                          <button className="btn btn-sm btn-ghost" disabled>
+                            Done
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </section>
+
+          <footer className="border-base-300 border-t p-4 sm:p-6">
+            {!isLoading && filtered.length > 0 && (
+              <p className="text-xs opacity-60">
+                Showing {filtered.length} of {list.length}
+              </p>
+            )}
+          </footer>
+        </article>
+      </main>
+
+      {/* Site footer */}
+      <footer className="border-base-300 bg-base-100 border-t">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-6 sm:px-6">
+          <p className="text-xs opacity-60">
+            © {new Date().getFullYear()} Online Classroom. All rights reserved.
+          </p>
+          <nav className="text-xs">
+            <a className="link link-hover mr-3" href="/privacy">
+              Privacy
+            </a>
+            <a className="link link-hover" href="/terms">
+              Terms
+            </a>
+          </nav>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }

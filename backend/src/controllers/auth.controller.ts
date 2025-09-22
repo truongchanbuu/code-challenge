@@ -2,24 +2,24 @@ import bcrypt from "bcrypt";
 import { NextFunction, Request, Response } from "express";
 import { AuthService } from "../services/auth.service";
 import { SetupAccountSchema } from "../models/student.schema";
-import { StudentService } from "../services/student.service";
+import { InstructorService } from "../services/instructor.service";
 import { UserService } from "../services/user.service";
 import { JwtService } from "../services/jwt.service";
 
 export class AuthController {
     private readonly authService: AuthService;
-    private readonly studentService: StudentService;
+    private readonly instructorService: InstructorService;
     private readonly userService: UserService;
     private readonly jwtService: JwtService;
 
     constructor(deps: {
         authService: AuthService;
-        studentService: StudentService;
+        instructorService: InstructorService;
         userService: UserService;
         jwtService: JwtService;
     }) {
         this.authService = deps.authService;
-        this.studentService = deps.studentService;
+        this.instructorService = deps.instructorService;
         this.userService = deps.userService;
         this.jwtService = deps.jwtService;
     }
@@ -72,7 +72,7 @@ export class AuthController {
     async setupAccount(req: Request, res: Response, next: NextFunction) {
         try {
             const parsed = SetupAccountSchema.parse(req.body);
-            const data = await this.studentService.setup(parsed);
+            const data = await this.instructorService.setup(parsed);
             return res.status(200).json({ ok: true, data });
         } catch (e) {
             next(e);

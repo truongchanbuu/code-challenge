@@ -20,19 +20,5 @@ export class StudentRoutes {
             requireRoles("student"),
             deps.studentController.markDone.bind(deps.studentController)
         );
-
-        this.router.put(
-            "/me",
-            requireAuth,
-            requireRoles("student"),
-            deps.studentController.editProfile.bind(deps.studentController)
-        );
-
-        this.router.get(
-            "/me",
-            requireAuth,
-            requireRoles("student"),
-            deps.studentController.me.bind(deps.studentController)
-        );
     }
 }

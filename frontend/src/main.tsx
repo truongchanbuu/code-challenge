@@ -12,7 +12,7 @@ createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <IoProvider>
         <App />
-        <Toaster richColors closeButton position="top-center" />
+        <Toaster richColors closeButton position="top-right" />
       </IoProvider>
     </QueryClientProvider>
   </StrictMode>,

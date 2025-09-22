@@ -37,3 +37,10 @@ export const PasswordAccountSchema = z
   });
 
 export type PasswordAccountValues = z.infer<typeof PasswordAccountSchema>;
+
+export type StudentBriefInfo = {
+  username?: string;
+  phoneNumber: string;
+  email?: string;
+  status?: string;
+};

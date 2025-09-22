@@ -3,6 +3,9 @@ import { normalizePhone } from "../utils/phone";
 import { AppError, ERROR_CODE } from "../config/error";
 import type { SocketServer } from "../libs/socket";
 import { AssignLessonInput } from "../types/lesson";
+import { UserRepo } from "../repos/user.repo";
+import { EmailNotifier } from "./email.service";
+import { NotificationService } from "./notification.service";
 
 function genLessonId() {
     return `L_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -10,15 +13,21 @@ function genLessonId() {
 
 export class LessonService {
     private readonly lessonRepo: LessonRepo;
-    private readonly socketServer?: SocketServer;
+    private readonly userRepo: UserRepo;
+    private readonly notificationService: NotificationService;
 
-    constructor(deps: { lessonRepo: LessonRepo; socketServer?: SocketServer }) {
+    constructor(deps: {
+        lessonRepo: LessonRepo;
+        userRepo: UserRepo;
+        notificationService: NotificationService;
+    }) {
         this.lessonRepo = deps.lessonRepo;
-        this.socketServer = deps.socketServer;
+        this.userRepo = deps.userRepo;
+        this.notificationService = deps.notificationService;
     }
 
     async assignLesson(
-        callerPhoneRaw: string,
+        callerId: string,
         body: AssignLessonInput
     ): Promise<{
         lessonId: string;
@@ -26,87 +35,108 @@ export class LessonService {
         skipped: number;
         skippedPhones: string[];
     }> {
-        const caller = normalizePhone(callerPhoneRaw);
-        if (!caller)
-            throw new AppError(
-                "Invalid caller phone.",
-                400,
-                ERROR_CODE.VALIDATION
-            );
+        const startedAt = Date.now();
+        const corrId = `assign:${startedAt.toString(36)}`;
 
-        const seen = new Set<string>();
-        const normalized: string[] = [];
-        const skippedPhones: string[] = [];
-        for (const p of body.studentPhones) {
-            const n = normalizePhone(p);
-            if (!n) {
-                skippedPhones.push(p);
-                continue;
+        try {
+            if (!callerId)
+                throw new AppError(
+                    "Invalid data.",
+                    400,
+                    ERROR_CODE.INVALID_DATA
+                );
+            const caller = await this.userRepo.getUserById(callerId);
+            if (!caller)
+                throw new AppError(
+                    "Invalid data.",
+                    400,
+                    ERROR_CODE.INVALID_DATA
+                );
+
+            const callerPhone = normalizePhone(caller.phoneNumber);
+            if (!callerPhone) {
+                throw new AppError(
+                    "Instructor phone is missing/invalid.",
+                    400,
+                    ERROR_CODE.VALIDATION
+                );
             }
-            if (!seen.has(n)) {
-                seen.add(n);
-                normalized.push(n);
+
+            const seen = new Set<string>();
+            const phones: string[] = [];
+            const skippedPhones: string[] = [];
+
+            for (const raw of body.studentPhones ?? []) {
+                const n = normalizePhone(raw);
+                if (!n) {
+                    skippedPhones.push(raw);
+                    continue;
+                }
+                if (!seen.has(n)) {
+                    seen.add(n);
+                    phones.push(n);
+                }
             }
-        }
-        if (normalized.length === 0) {
-            throw new AppError(
-                "No valid student phones.",
-                404,
-                ERROR_CODE.NOT_FOUND
-            );
-        }
 
-        const usersMap = await this.lessonRepo.getUsersByPhones(normalized);
-        const owned: string[] = [];
-        for (const ph of normalized) {
-            const u = usersMap[ph];
-            if (u?.role === "student" && u.primaryInstructor === caller)
-                owned.push(ph);
-            else skippedPhones.push(ph);
-        }
-        if (owned.length === 0) {
-            throw new AppError(
-                "No owned students to assign.",
-                404,
-                ERROR_CODE.NOT_FOUND
-            );
-        }
+            if (phones.length === 0) {
+                throw new AppError(
+                    "No valid student phones.",
+                    404,
+                    ERROR_CODE.NOT_FOUND
+                );
+            }
 
-        const lessonId = genLessonId();
-        const now = new Date();
-        await this.lessonRepo.createLesson({
-            lessonId,
-            title: body.title,
-            description: body.description ?? "",
-            createdBy: caller,
-            createdAt: now,
-        });
+            const lessonId = genLessonId();
+            const now = new Date();
 
-        await this.lessonRepo.saveAssignmentsForStudents(owned, {
-            lessonId,
-            title: body.title,
-            description: body.description ?? "",
-            status: "assigned",
-            assignedBy: caller,
-            assignedAt: now,
-            doneAt: null,
-            updatedAt: now,
-        });
-
-        if (this.socketServer) {
-            this.socketServer.emitLessonAssigned(lessonId, body.title, owned);
-            this.socketServer.emitToPhone(caller, "lesson:dispatched", {
+            await this.lessonRepo.createLesson({
                 lessonId,
-                assignedTo: owned.length,
-                skipped: skippedPhones.length,
+                title: body.title,
+                description: body.description ?? "",
+                createdBy: callerPhone ?? caller.email ?? caller.username,
+                createdAt: now,
             });
-        }
 
-        return {
-            lessonId,
-            assignedTo: owned.length,
-            skipped: skippedPhones.length,
-            skippedPhones,
-        };
+            await this.lessonRepo.saveAssignmentsForStudents(phones, {
+                lessonId,
+                title: body.title,
+                description: body.description ?? "",
+                status: "assigned",
+                assignedBy: callerPhone,
+                assignedAt: now,
+                doneAt: null,
+                updatedAt: now,
+            });
+
+            try {
+                await this.notificationService.notifyLessonAssigned(
+                    phones,
+                    lessonId,
+                    body.title,
+                    body.description ?? "",
+                    { sendEmail: true }
+                );
+            } catch (e: any) {
+                console.log(corrId, "socket emit skipped", e?.message);
+            }
+
+            return {
+                lessonId,
+                assignedTo: phones.length,
+                skipped: skippedPhones.length, // chỉ bao gồm những số invalid format
+                skippedPhones,
+            };
+        } catch (e: any) {
+            console.log(corrId, "assignLesson error", {
+                message: e?.message,
+                code: e?.code ?? e?.name,
+            });
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Internal error while assigning lesson",
+                500,
+                ERROR_CODE.INTERNAL_ERROR
+            );
+        }
     }
 }

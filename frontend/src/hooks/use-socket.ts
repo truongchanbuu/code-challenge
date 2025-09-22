@@ -23,7 +23,6 @@ export function useAppSocket(opts?: {
     const base = import.meta.env.VITE_API_BASE_URL;
     return base ? base.replace(/\/api\/?$/, "") : undefined;
   }, []);
-  console.log("[FE] socket url", urlOrNs, "hasToken?", !!token);
 
   const { socket, connected, error } = useSocket(urlOrNs, {
     enabled: !!token,
@@ -32,22 +31,6 @@ export function useAppSocket(opts?: {
     reconnection: true,
     auth: token ? { token } : undefined,
   });
-
-  useEffect(() => {
-    if (!socket) return;
-    const onErr = (e: any) =>
-      console.error("[FE] connect_error", e?.message || e);
-    const onConnect = () => console.log("[FE] connected", socket.id);
-    const onDisconnect = (r: any) => console.log("[FE] disconnected", r);
-    socket.on("connect_error", onErr);
-    socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
-    return () => {
-      socket.off("connect_error", onErr);
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-    };
-  }, [socket]);
 
   useEffect(() => {
     if (!socket) return;

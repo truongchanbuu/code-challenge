@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import { AppError, ERROR_CODE } from "../config/error";
 import { AddStudentDTO, UpdateStudentDTO } from "../models/student.schema";
-import { OtpNotifier } from "../repos/notifier";
+import { Notifier } from "../repos/notifier";
 import { SetupTokenRepo } from "../repos/setup-token.repo";
 import { UserRepo } from "../repos/user.repo";
 import {
@@ -19,14 +19,14 @@ export class StudentService {
     private readonly setupTokenRepo: SetupTokenRepo;
     private readonly tokenSecret: string;
     private readonly feUrl: string;
-    private readonly emailService: OtpNotifier;
+    private readonly emailService: Notifier;
     private readonly bcryptSaltRounds: number;
 
     constructor(deps: {
         userRepo: UserRepo;
         phoneIndexRepo: PhoneIndexRepo;
         setupTokenRepo: SetupTokenRepo;
-        emailService: OtpNotifier;
+        emailService: Notifier;
         config: any;
     }) {
         this.emailService = deps.emailService;

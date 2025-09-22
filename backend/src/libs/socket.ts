@@ -12,6 +12,13 @@ export interface SocketInit {
     path?: string;
 }
 
+export class ISocketServer {
+    emitLessonAssigned(..._args: any[]): any {}
+    emitToPhone(..._args: any[]): any {}
+    emitToUser(..._args: any[]): any {}
+    emitToRoom(..._args: any[]): any {}
+}
+
 export class SocketServer {
     public io: Server;
     constructor({ httpServer, verifyToken }: SocketInit) {

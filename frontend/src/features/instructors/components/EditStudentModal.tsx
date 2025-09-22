@@ -52,7 +52,6 @@ export default function EditStudentModal({
   const mut = useUpdateStudent(originalPhone!, onClose);
 
   const onInvalid = (errors: any) => {
-    console.log("RHForm errors:", errors);
     const first = Object.values(errors)[0] as any;
     const msg = first?.message || "Please fix the highlighted fields.";
     toast.error(msg);

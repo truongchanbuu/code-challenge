@@ -3,7 +3,7 @@ import { AccessCodeRepo } from "../repos/access-code.repo";
 import { AccessCode, AccessCodeType } from "../models/access-code.model";
 import { UserRepo } from "../repos/user.repo";
 import { AppError, ERROR_CODE } from "../config/error";
-import { OtpNotifier } from "../repos/notifier";
+import { Notifier } from "../repos/notifier";
 import { JwtService } from "./jwt.service";
 import { toDate } from "../utils/date";
 import {
@@ -20,8 +20,8 @@ export class AuthService {
     private readonly accessCodeRepo: AccessCodeRepo;
     private readonly userRepo: UserRepo;
 
-    private readonly smsService: OtpNotifier;
-    private readonly emailService: OtpNotifier;
+    private readonly smsService: Notifier;
+    private readonly emailService: Notifier;
     private readonly jwtService: JwtService;
 
     constructor({
@@ -35,8 +35,8 @@ export class AuthService {
         config: any;
         accessCodeRepo: AccessCodeRepo;
         userRepo: UserRepo;
-        smsService: OtpNotifier;
-        emailService: OtpNotifier;
+        smsService: Notifier;
+        emailService: Notifier;
         jwtService: JwtService;
     }) {
         this.OTP_TTL_IN_MINS = config?.sms?.otpTtlInMins ?? 5;

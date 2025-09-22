@@ -1,6 +1,7 @@
 import { storage } from "@/utils/storage";
 import type { AddStudentResponse, StudentsPage } from "../schemas/api.schema";
 import type { AddStudentValues } from "../schemas/student.schema";
+import type { AssignModalResult } from "../schemas/assignment.schema";
 
 const API = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -107,4 +108,31 @@ export async function fetchStudentsPage({
     total: total ?? 0,
     nextCursor: nextCursor ?? null,
   };
+}
+
+export async function postAssignLesson(payload: {
+  title: string;
+  description?: string;
+  studentPhones: string[];
+}): Promise<AssignModalResult> {
+  const res = await fetch(`${API}/instructor/assignLesson`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${storage.accessToken}`,
+    },
+    body: JSON.stringify(payload),
+    credentials: "include",
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: {
+        code: json?.error?.code,
+        message: json?.error?.message || "Assignment failed",
+      },
+    };
+  }
+  return { ok: true, data: json?.data };
 }

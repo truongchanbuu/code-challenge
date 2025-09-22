@@ -4,7 +4,7 @@ dotenv.config();
 export const configs = {
     port: process.env.PORT || 3000,
     feUrl: process.env.FE_URL,
-    origins: process.env.CORS_ORIGIN?.split(",") || "http://localhost:3000",
+    origins: process.env.CORS_ORIGIN?.split(",") || ["*"],
     jwtSecret: process.env.JWT_SECRET,
     accessTokentlSec: Number(process.env.JWT_ACCESS_TOKEN_TTL || 3600),
     refreshTokentlSec: Number(process.env.JWT_REFRESH_TOKEN_TTL || 2592000),

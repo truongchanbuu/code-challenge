@@ -1,6 +1,7 @@
-import { Bell } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
+import { storage } from "@/utils/storage";
 
-interface AppNavbarProps {
+interface Props {
   appName?: string;
   unread?: number;
   avatarUrl?: string;
@@ -13,14 +14,15 @@ interface AppNavbarProps {
 
 export default function AppNavbar({
   appName = "Online Classroom Management System",
-  unread = 0,
   avatarUrl,
   userName = "Instructor",
-  onBellClick,
   onProfile,
   onSettings,
-  onLogout,
-}: AppNavbarProps) {
+}: Props) {
+  const onLogout = () => {
+    storage.clear();
+  };
+
   return (
     <div className="navbar bg-base-100 border-base-200 border-b">
       <div className="flex-1">
@@ -30,20 +32,7 @@ export default function AppNavbar({
       </div>
 
       <div className="flex-none gap-2">
-        <button
-          aria-label="Notifications"
-          className="btn btn-ghost btn-circle"
-          onClick={onBellClick}
-        >
-          <div className="indicator">
-            <Bell className="h-5 w-5" />
-            {unread > 0 && (
-              <span className="badge badge-primary badge-xs indicator-item">
-                {unread > 9 ? "9+" : unread}
-              </span>
-            )}
-          </div>
-        </button>
+        <NotificationBell />
 
         <div className="dropdown dropdown-end">
           <div

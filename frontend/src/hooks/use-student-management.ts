@@ -5,6 +5,7 @@ import {
   addStudent,
   deleteStudent,
   editStudent,
+  postAssignLesson,
 } from "@/features/instructors/utils/api";
 import type { Student } from "@/schemas/user.schema";
 import {
@@ -61,10 +62,12 @@ export function useUpdateStudent(phone: string, onClose: any) {
             if (!old) return old;
             return {
               ...old,
-              pages: old.pages.map((p) => ({
-                ...p,
-                items: p.items.map((s) =>
-                  (s.phoneNumber ?? "") === phone ? { ...s, ...updated } : s,
+              pages: old.pages.map((page) => ({
+                ...page,
+                items: page.items.map((std) =>
+                  (std.phoneNumber ?? "") === phone
+                    ? { ...std, ...updated }
+                    : std,
                 ),
               })),
             };
@@ -84,5 +87,31 @@ export function useUpdateStudent(phone: string, onClose: any) {
     onError: (e: any) => {
       toast.error(e?.message ?? "Update failed");
     },
+  });
+}
+
+export function useAssignLesson({
+  studentsQuery,
+  onClose,
+}: {
+  onClose: any;
+  studentsQuery: any;
+}) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: postAssignLesson,
+    onSuccess: (r) => {
+      if (r.ok) {
+        qc.invalidateQueries({
+          queryKey: [
+            ...studentsKeys.infinite(studentsQuery),
+            ...studentsKeys.all,
+          ],
+        });
+        toast.success("Assigned!");
+        onClose();
+      }
+    },
+    onError: () => toast.error("Assign Failed."),
   });
 }

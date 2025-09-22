@@ -1,9 +1,9 @@
 import { Twilio } from "twilio";
-import { OtpNotifier } from "../repos/notifier";
+import { Notifier } from "../repos/notifier";
 import { AppError, ERROR_CODE } from "../config/error";
 import { normalizePhone } from "../utils/phone";
 
-export class SmsNotifier implements OtpNotifier {
+export class SmsNotifier implements Notifier {
     private readonly twilio: Twilio;
     private readonly from: string;
     private readonly messagingServiceSid: string;

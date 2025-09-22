@@ -41,10 +41,6 @@ async function bootstrap() {
         const PORT = config.port || 3000;
         httpServer.listen(PORT, () => {
             console.log(`Server is running on http://localhost:${PORT}...`);
-            console.log(
-                "[BOOT] http.upgrade listeners:",
-                httpServer.listeners("upgrade").map((fn) => fn.name)
-            );
         });
     } catch (e) {
         console.error("Failed to start server.", e);

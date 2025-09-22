@@ -6,3 +6,11 @@ export function autoE164(raw: string) {
 
   return s;
 }
+
+export function normalizePhone(input: string): string {
+  const s = input.replace(/[^+\d]/g, "");
+  if (s.startsWith("+")) return s;
+  if (s.startsWith("0")) return "+84" + s.slice(1);
+  if (s.startsWith("84")) return "+" + s;
+  return s;
+}

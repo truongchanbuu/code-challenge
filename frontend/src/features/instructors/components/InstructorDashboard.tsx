@@ -6,6 +6,7 @@ import SearchInput from "@/components/SearchInput";
 import AppNavbar from "@/components/AppNavBar";
 import StudentsTable from "./StudentTable";
 import AddStudentModal from "./AddStudentModal";
+import AssignLessonModal from "./AssignLessonModal";
 
 export default function InstructorDashboard() {
   const navigator = useNavigate();
@@ -30,15 +31,11 @@ export default function InstructorDashboard() {
   const [isAssignOpen, setAssignOpen] = useState(false);
 
   const [presence, setPresence] = useState<Record<string, boolean>>({});
-  const { connected, socket } = useAppSocket({
+  useAppSocket({
     onPresence: ({ userId, online }) => {
-      console.log(`u: ${userId} - ${online}`);
       setPresence((m) => ({ ...m, [userId]: online }));
     },
   });
-
-  socket?.on("presence", (e) => console.log("presence", e));
-  socket?.on("connect_error", (e) => console.error(e?.message));
 
   const toolbar = (
     <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -103,6 +100,10 @@ export default function InstructorDashboard() {
         )}
       </div>
 
+      <AssignLessonModal
+        open={isAssignOpen}
+        onClose={() => setAssignOpen(false)}
+      />
       <AddStudentModal open={isAddOpen} onClose={() => setAddOpen(false)} />
     </div>
   );

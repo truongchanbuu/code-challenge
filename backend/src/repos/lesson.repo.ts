@@ -12,7 +12,10 @@ function chunk<T>(arr: T[], size: number): T[][] {
 }
 
 export class LessonRepo {
-    constructor(private firestore: Firestore) {}
+    private firestore: Firestore;
+    constructor(deps: { firestore: Firestore }) {
+        this.firestore = deps.firestore;
+    }
 
     async createLesson(lesson: Lesson): Promise<void> {
         try {
@@ -54,41 +57,6 @@ export class LessonRepo {
             if (e instanceof AppError) throw e;
             throw new AppError(
                 "Failed to assign lesson.",
-                500,
-                ERROR_CODE.INTERNAL_ERROR
-            );
-        }
-    }
-
-    async getUsersByPhones(
-        phones: string[]
-    ): Promise<
-        Record<string, { role?: string; primaryInstructor?: string | null }>
-    > {
-        try {
-            const IN_LIMIT = 10;
-            const col = this.firestore.collection("users");
-            const result: Record<
-                string,
-                { role?: string; primaryInstructor?: string | null }
-            > = {};
-
-            for (const slice of chunk(phones, IN_LIMIT)) {
-                const snap = await col.where("phone", "in", slice).get();
-                snap.forEach((doc) => {
-                    const u = doc.data() as any;
-                    result[u.phone] = {
-                        role: u.role,
-                        primaryInstructor: u.primaryInstructor ?? null,
-                    };
-                });
-            }
-            return result;
-        } catch (e) {
-            console.error(e);
-            if (e instanceof AppError) throw e;
-            throw new AppError(
-                "Failed to get user.",
                 500,
                 ERROR_CODE.INTERNAL_ERROR
             );

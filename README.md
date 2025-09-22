@@ -52,7 +52,7 @@ backend/   # Express API
 
 ## ⚙️ Environment Variables
 
-Create `.env.local` & `.env` files for both **backend** and **frontend**.
+Create `.env.local` for **frontend** & `.env` for **backend**.
 
 ### `backend/.env`
 
@@ -99,9 +99,18 @@ VITE_SOCKET_URL=/socket.io
 
 ### 1) Install dependencies
 
+**Backend**
+
 ```bash
+cd backend
 npm install
-# or: npm install / yarn
+```
+
+**Frontend**
+
+```bash
+cd frontend
+npm install
 ```
 
 ### 2) Dev servers
@@ -128,7 +137,7 @@ npm run dev
 
 ## 🧱 API Overview (selected)
 
-Base URL: `{VITE_API_BASE_URL}` (e.g., `/api`)
+Base URL: `{VITE_API_BASE_URL}` (e.g., `/api`) & SocketIO URL: `{VITE_SOCKET_URL}` (e.g., `/socket.io`)
 
 ### Auth
 
@@ -247,8 +256,6 @@ const {{ data: currentUser }} = useQuery({
   }
 }}
 ```
-
----
 
 ## 🧪 Testing
 

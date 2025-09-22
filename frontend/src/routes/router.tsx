@@ -2,7 +2,7 @@ import { createBrowserRouter, Outlet } from "react-router-dom";
 import LoginPage from "@/pages/LoginPage";
 import OtpVerificationPage from "@/pages/OtpVerificationPage";
 import InstructorDashboard from "@/features/instructors/components/InstructorDashboard";
-import StudentDashboard from "@/features/student/components/StudentDashboard";
+import StudentDashboardPage from "@/features/student/components/StudentDashboardPage";
 import { PublicOnly, AuthGuard, RoleGuard } from "./guard";
 import NotFoundPage from "@/pages/NotFoundPage";
 import AccountSetup from "@/features/auth/components/SetupAccount";
@@ -49,7 +49,7 @@ export const router = createBrowserRouter([
         path: "/student/dashboard",
         element: (
           <RoleGuard allow={["student"]}>
-            <StudentDashboard />
+            <StudentDashboardPage />
           </RoleGuard>
         ),
       },

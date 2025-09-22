@@ -26,19 +26,6 @@ export class InstructorRoutes {
             lessonController.assignLesson.bind(lessonController)
         );
 
-        this.router.put(
-            "/:phoneNumber",
-            requireAuth,
-            requireRoles("instructor"),
-            instructorController.updateStudent.bind(instructorController)
-        );
-        this.router.delete(
-            "/:phoneNumber",
-            requireAuth,
-            requireRoles("instructor"),
-            instructorController.deleteStudent.bind(instructorController)
-        );
-
         this.router.post(
             "/students",
             requireAuth,
@@ -52,6 +39,27 @@ export class InstructorRoutes {
             requireAuth,
             requireRoles("instructor"),
             instructorController.getStudents.bind(instructorController)
+        );
+
+        this.router.get(
+            "/currentAssignments",
+            requireAuth,
+            requireRoles("instructor"),
+            instructorController.currentAssignments.bind(instructorController)
+        );
+
+        this.router.put(
+            "/:phoneNumber",
+            requireAuth,
+            requireRoles("instructor"),
+            instructorController.updateStudent.bind(instructorController)
+        );
+
+        this.router.delete(
+            "/:phoneNumber",
+            requireAuth,
+            requireRoles("instructor"),
+            instructorController.deleteStudent.bind(instructorController)
         );
     }
 }

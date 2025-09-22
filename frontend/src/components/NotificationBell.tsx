@@ -5,7 +5,7 @@ import { useAppSocket } from "@/hooks/use-socket";
 import { apiCount, apiList, apiRead } from "@/features/notification/utils/api";
 
 export default function NotificationBell() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
 
   const { data: unread = 0 } = useQuery({
     queryKey: ["notifications", "count"],
@@ -22,10 +22,10 @@ export default function NotificationBell() {
   const markRead = useMutation({
     mutationFn: apiRead,
     onSuccess: (_d, id) => {
-      qc.setQueryData<number>(["notifications", "count"], (n) =>
+      queryClient.setQueryData<number>(["notifications", "count"], (n) =>
         Math.max(0, (n ?? 0) - 1),
       );
-      qc.setQueryData<any[]>(["notifications", "list"], (old) =>
+      queryClient.setQueryData<any[]>(["notifications", "list"], (old) =>
         Array.isArray(old)
           ? old.map((x) => (x.id === id ? { ...x, read: true } : x))
           : old,
@@ -37,8 +37,11 @@ export default function NotificationBell() {
   useEffect(() => {
     if (!socket) return;
     const onNew = (n: any) => {
-      qc.setQueryData<number>(["notifications", "count"], (v) => (v ?? 0) + 1);
-      qc.setQueryData<any[]>(["notifications", "list"], (old) =>
+      queryClient.setQueryData<number>(
+        ["notifications", "count"],
+        (v) => (v ?? 0) + 1,
+      );
+      queryClient.setQueryData<any[]>(["notifications", "list"], (old) =>
         Array.isArray(old) ? [n, ...old].slice(0, 20) : [n],
       );
     };
@@ -46,9 +49,7 @@ export default function NotificationBell() {
     return () => {
       socket.off("notify:new", onNew);
     };
-  }, [socket, qc]);
-
-  console.log(items);
+  }, [socket, queryClient]);
 
   return (
     <div className="group relative">

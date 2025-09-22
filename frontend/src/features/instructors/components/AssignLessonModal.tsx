@@ -31,6 +31,7 @@ export default function AssignLessonModal({
     studentsInf.data?.pages.flatMap(
       (p: any) => p?.items ?? p?.data?.items ?? p?.data ?? [],
     ) ?? [];
+
   const items: StudentBriefInfo[] = useMemo(
     () =>
       rawItems.map((user: any) => ({

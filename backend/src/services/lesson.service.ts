@@ -6,6 +6,7 @@ import { AssignLessonInput } from "../types/lesson";
 import { UserRepo } from "../repos/user.repo";
 import { EmailNotifier } from "./email.service";
 import { NotificationService } from "./notification.service";
+import { StudentLessonRepo } from "../repos/student-lesson.repo";
 
 function genLessonId() {
     return `L_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -13,6 +14,7 @@ function genLessonId() {
 
 export class LessonService {
     private readonly lessonRepo: LessonRepo;
+    private readonly studentLessonRepo: StudentLessonRepo;
     private readonly userRepo: UserRepo;
     private readonly notificationService: NotificationService;
 
@@ -20,7 +22,9 @@ export class LessonService {
         lessonRepo: LessonRepo;
         userRepo: UserRepo;
         notificationService: NotificationService;
+        studentLessonRepo: StudentLessonRepo;
     }) {
+        this.studentLessonRepo = deps.studentLessonRepo;
         this.lessonRepo = deps.lessonRepo;
         this.userRepo = deps.userRepo;
         this.notificationService = deps.notificationService;
@@ -97,7 +101,7 @@ export class LessonService {
                 createdAt: now,
             });
 
-            await this.lessonRepo.saveAssignmentsForStudents(phones, {
+            await this.studentLessonRepo.saveAssignmentsForStudents(phones, {
                 lessonId,
                 title: body.title,
                 description: body.description ?? "",

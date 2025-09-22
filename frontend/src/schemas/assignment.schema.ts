@@ -8,7 +8,12 @@ export const AssignmentSchema = z
   .object({
     lessonId: LessonIdSchema,
     title: z.string().min(1).max(200).trim(),
-    description: z.string().min(1).max(1000).trim(),
+    description: z
+      .string()
+      .max(1000)
+      .optional()
+      .default("")
+      .transform((s) => (s ?? "").trim()),
     status: AssignmentStatusSchema,
     assignedBy: PhoneSchema,
     assignedAt: z.coerce.date(),
@@ -47,3 +52,4 @@ export const AssignmentSchema = z
   });
 
 export type Assignment = z.infer<typeof AssignmentSchema>;
+export type AssignmentStatus = z.infer<typeof AssignmentStatusSchema>;

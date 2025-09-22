@@ -12,11 +12,13 @@ import {
 import { User } from "../models/user.model";
 import { PhoneIndexRepo } from "../repos/phone-index.repo";
 import { normalizePhone } from "../utils/phone";
+import { StudentLessonRepo } from "../repos/student-lesson.repo";
 
 export class InstructorService {
     private readonly userRepo: UserRepo;
     private readonly phoneIndexRepo: PhoneIndexRepo;
     private readonly setupTokenRepo: SetupTokenRepo;
+    private readonly studentLessonRepo: StudentLessonRepo;
     private readonly tokenSecret: string;
     private readonly feUrl: string;
     private readonly emailService: Notifier;
@@ -26,11 +28,13 @@ export class InstructorService {
         userRepo: UserRepo;
         phoneIndexRepo: PhoneIndexRepo;
         setupTokenRepo: SetupTokenRepo;
+        studentLessonRepo: StudentLessonRepo;
         emailService: Notifier;
         config: any;
     }) {
         this.emailService = deps.emailService;
         this.userRepo = deps.userRepo;
+        this.studentLessonRepo = deps.studentLessonRepo;
         this.phoneIndexRepo = deps.phoneIndexRepo;
         this.setupTokenRepo = deps.setupTokenRepo;
         this.tokenSecret = deps.config.tokenSecret;
@@ -239,6 +243,39 @@ export class InstructorService {
                 500,
                 ERROR_CODE.INTERNAL_ERROR
             );
+        }
+    }
+
+    async getStudentsCurrentAssignments(phones: string[]) {
+        try {
+            const set = new Set<string>();
+            const norm = phones
+                .map((phone) => normalizePhone(phone))
+                .filter(Boolean)
+                .filter((phone) => {
+                    const ok = !set.has(phone!);
+                    if (ok) set.add(phone!);
+                    return ok;
+                }) as string[];
+
+            if (norm.length === 0) {
+                throw new AppError(
+                    "No valid phones",
+                    400,
+                    ERROR_CODE.VALIDATION
+                );
+            }
+
+            const assigments =
+                await this.studentLessonRepo.getLatestAssignmentsForStudents(
+                    norm
+                );
+
+            return assigments;
+        } catch (e) {
+            console.error(e);
+            if (e instanceof AppError) throw e;
+            throw new AppError("Failed to get current assignments.");
         }
     }
 }

@@ -1,16 +1,19 @@
-import { createHmac, randomInt, timingSafeEqual } from "crypto";
 import { AccessCodeRepo } from "../repos/access-code.repo";
 import { AccessCode, AccessCodeType } from "../models/access-code.model";
 import { UserRepo } from "../repos/user.repo";
 import { AppError, ERROR_CODE } from "../config/error";
 import { Notifier } from "../repos/notifier";
 import { JwtService } from "./jwt.service";
-import { toDate } from "../utils/date";
+import { expiresAtFromNow, toDate } from "../utils/date";
 import {
     getAvailableTarget,
+    getOtp6Code,
+    hashHmacOtp,
     isExactOneTargetValue,
     normalizeTarget,
+    verifyHmacOtp,
 } from "../utils/access-code";
+import { normalizePhone } from "../utils/phone";
 
 export class AuthService {
     private readonly OTP_TTL_IN_MINS: number;
@@ -84,11 +87,11 @@ export class AuthService {
             const target = normalizeTarget(type, rawTarget);
             const userId = await this.resolveUserId(type, target);
 
-            const otp = this.getOtp6Code();
+            const otp = getOtp6Code();
             if (process.env.NODE_ENV !== "production") {
                 console.debug("[OTP]", otp);
             }
-            const codeHash = this.hashHmacOtp(userId, otp, this.OTP_SECRET);
+            const codeHash = hashHmacOtp(userId, otp, this.OTP_SECRET);
 
             const accessCode: AccessCode = {
                 userId,
@@ -98,7 +101,7 @@ export class AuthService {
                 codeHash,
                 status: "active",
                 maxAttempts: this.OTP_MAX_ATTEMPTS,
-                expiresAt: this.expiresAtFromNow(),
+                expiresAt: expiresAtFromNow(this.OTP_TTL_IN_MINS),
                 sentAt: new Date(),
                 consumedAt: null,
             };
@@ -187,7 +190,13 @@ export class AuthService {
                 throw new AppError("Code expired.", 400, ERROR_CODE.VALIDATION);
             }
 
-            const ok = this.verifyHmacOtp(data.codeHash, data.userId, otp);
+            const ok = verifyHmacOtp(
+                data.codeHash,
+                data.userId,
+                otp,
+                this.OTP_SECRET
+            );
+
             if (!ok) {
                 const retry = await this.accessCodeRepo.incrementAttempts(
                     id,
@@ -220,21 +229,47 @@ export class AuthService {
                     ERROR_CODE.NOT_FOUND
                 );
 
-            await this.userRepo.trackLoginTime(user.userId);
+            if (data.type === "email") {
+                await this.userRepo.updateUser(user.userId, {
+                    ...user,
+                    email: data.target,
+                    emailVerified: true,
+                    updatedAt: new Date(),
+                });
+            } else if (data.type === "phone") {
+                const normalizedPhone = normalizePhone(data.target);
+                if (!normalizedPhone) {
+                    throw new AppError(
+                        "Invalid phone.",
+                        400,
+                        ERROR_CODE.VALIDATION
+                    );
+                }
+                await this.userRepo.updateUser(user.userId, {
+                    ...user,
+                    phoneNumber: normalizedPhone,
+                    updatedAt: new Date(),
+                });
+            }
+
+            const updated = await this.userRepo.getUserById(user.userId);
+            if (!updated) throw new AppError("Missing update data.");
+
+            await this.userRepo.trackLoginTime(updated.userId);
             const { accessToken, refreshToken } =
                 this.jwtService.issueTokenPair({
-                    userId: user.userId,
-                    role: user.role,
-                    phoneNumber: user.phoneNumber,
-                    email: user.email,
+                    userId: updated.userId,
+                    role: updated.role,
+                    phoneNumber: updated.phoneNumber,
+                    email: updated.email,
                 });
 
             return {
                 user: {
-                    userId: user.userId,
-                    phoneNumber: user.phoneNumber,
-                    email: user.email,
-                    role: user.role,
+                    userId: updated.userId,
+                    phoneNumber: updated.phoneNumber,
+                    email: updated.email,
+                    role: updated.role,
                 },
                 tokens: { accessToken, refreshToken },
             };
@@ -258,36 +293,5 @@ export class AuthService {
             throw new AppError("User not found", 404, ERROR_CODE.NOT_FOUND);
         }
         return userId;
-    }
-
-    private getOtp6Code() {
-        return String(randomInt(0, 1_000_000)).padStart(6, "0");
-    }
-
-    private hashHmacOtp(
-        userId: string,
-        otp: string,
-        key: Buffer = this.OTP_SECRET
-    ) {
-        return createHmac("sha256", key)
-            .update(`${userId}:${otp}`)
-            .digest("hex");
-    }
-
-    private verifyHmacOtp(
-        codeHash: string,
-        userId: string,
-        otp: string,
-        key: Buffer = this.OTP_SECRET
-    ) {
-        const calcHex = this.hashHmacOtp(userId, otp, key);
-        const a = Buffer.from(codeHash, "hex");
-        const b = Buffer.from(calcHex, "hex");
-        return a.length === b.length && timingSafeEqual(a, b);
-    }
-
-    private expiresAtFromNow() {
-        const ttlMs = this.OTP_TTL_IN_MINS * 60 * 1000;
-        return new Date(Date.now() + ttlMs);
     }
 }

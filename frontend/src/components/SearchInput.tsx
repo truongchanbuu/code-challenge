@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useDebounced } from "@/hooks/use-debounce";
+import { useEffect, useState } from "react";
 
 export default function SearchInput({
   value,
@@ -12,15 +13,15 @@ export default function SearchInput({
   delay?: number;
 }) {
   const [local, setLocal] = useState(value);
-  useEffect(() => setLocal(value), [value]);
 
-  const debounced = useMemo(() => {
-    const timeoutRef: { id?: number } = {};
-    return (v: string) => {
-      if (timeoutRef.id) window.clearTimeout(timeoutRef.id);
-      timeoutRef.id = window.setTimeout(() => onChange(v), delay);
-    };
-  }, [onChange, delay]);
+  useEffect(() => {
+    if (value !== local) setLocal(value);
+  }, [value]);
+
+  const debounced = useDebounced(local, delay);
+  useEffect(() => {
+    if (debounced !== value) onChange(debounced);
+  }, [debounced, value, onChange]);
 
   return (
     <label
@@ -30,10 +31,7 @@ export default function SearchInput({
       <input
         aria-label="Search students"
         value={local}
-        onChange={(e) => {
-          setLocal(e.target.value);
-          debounced(e.target.value);
-        }}
+        onChange={(e) => setLocal(e.target.value)}
         placeholder={placeholder}
         className="grow"
       />

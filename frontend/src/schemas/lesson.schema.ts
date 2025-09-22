@@ -2,7 +2,7 @@ import z from "zod";
 
 export const LessonIdSchema = z
   .string()
-  .regex(/^L\d+$/, "lessonId must look like 'L123'");
+  .regex(/^L(\d+|_\d+_[a-z0-9]+)$/i, "invalid lessonId");
 
 export const LessonSchema = z.object({
   lessonId: LessonIdSchema,

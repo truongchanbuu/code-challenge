@@ -52,7 +52,6 @@ export function useUpdateStudent(phone: string, onClose: any) {
         phoneNumber: data.phoneNumber?.trim() || undefined,
       }),
     onSuccess: (res) => {
-      console.log(`res: ${JSON.stringify(res)}`);
       if (res?.ok && res?.data) {
         const updated = res.data as Student;
 
@@ -97,12 +96,12 @@ export function useAssignLesson({
   onClose: any;
   studentsQuery: any;
 }) {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: postAssignLesson,
     onSuccess: (r) => {
       if (r.ok) {
-        qc.invalidateQueries({
+        queryClient.invalidateQueries({
           queryKey: [
             ...studentsKeys.infinite(studentsQuery),
             ...studentsKeys.all,

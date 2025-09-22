@@ -130,6 +130,37 @@ export class InstructorController {
         }
     }
 
+    async currentAssignments(req: Request, res: Response) {
+        try {
+            const user = getAuthUser(req, res);
+            if (user.role !== "instructor") {
+                return res
+                    .status(403)
+                    .json({ ok: false, error: { code: "FORBIDDEN" } });
+            }
+
+            const raw = (req.query.phones as string) || "";
+            const phones = raw
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean);
+
+            const map =
+                await this.instructorService.getStudentsCurrentAssignments(
+                    phones
+                );
+
+            return res.status(200).json({ ok: true, data: map });
+        } catch (e: any) {
+            const code = e?.code || "INTERNAL_ERROR";
+            const status = typeof e?.status === "number" ? e.status : 500;
+            res.status(status).json({
+                ok: false,
+                error: { code, message: e?.message || "Failed" },
+            });
+        }
+    }
+
     async deleteStudent(req: Request, res: Response, next: NextFunction) {
         try {
             const { phoneNumber } = req.params;

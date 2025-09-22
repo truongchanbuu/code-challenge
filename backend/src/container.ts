@@ -28,6 +28,12 @@ import { NotificationRepo } from "./repos/notification.repo";
 import { NotificationService } from "./services/notification.service";
 import { NotificationController } from "./controllers/notification.controller";
 import { NotificationRoutes } from "./routes/notification.routes";
+import { StudentLessonRepo } from "./repos/student-lesson.repo";
+import { StudentService } from "./services/student.service";
+import { StudentController } from "./controllers/student.controller";
+import { ProfileRoutes } from "./routes/profile.routes";
+import { ProfileController } from "./controllers/profile.controller";
+import { ProfileService } from "./services/profile.service";
 
 export function createConfigContainer() {
     const container = createContainer();
@@ -56,25 +62,31 @@ export function createConfigContainer() {
         setupTokenRepo: asClass(SetupTokenRepo).singleton(),
         accessCodeRepo: asClass(AccessCodeRepo).singleton(),
         lessonRepo: asClass(LessonRepo).singleton(),
+        studentLessonRepo: asClass(StudentLessonRepo).singleton(),
         notificationRepo: asClass(NotificationRepo).singleton(),
 
+        profileService: asClass(ProfileService).singleton(),
         userService: asClass(UserService).singleton(),
         authService: asClass(AuthService).singleton(),
         instructorService: asClass(InstructorService).singleton(),
+        studentService: asClass(StudentService).singleton(),
         lessonService: asClass(LessonService).singleton(),
         notificationService: asClass(NotificationService).singleton(),
 
         authController: asClass(AuthController).singleton(),
         adminController: asClass(AdminController).singleton(),
+        studentController: asClass(StudentController).singleton(),
         instructorController: asClass(InstructorController).singleton(),
         lessonController: asClass(LessonController).singleton(),
         notificationController: asClass(NotificationController).singleton(),
+        profileController: asClass(ProfileController).singleton(),
 
         instructorRoutes: asClass(InstructorRoutes).singleton(),
         authRoutes: asClass(AuthRoutes).singleton(),
         adminRoutes: asClass(AdminRoutes).singleton(),
         studentRoutes: asClass(StudentRoutes).singleton(),
         notificationRoutes: asClass(NotificationRoutes).singleton(),
+        profileRoutes: asClass(ProfileRoutes).singleton(),
         apiRoutes: asClass(ApiRoutes).singleton(),
     });
 

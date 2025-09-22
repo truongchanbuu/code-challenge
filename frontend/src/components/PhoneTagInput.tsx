@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
+import { normalizePhone } from "@/utils/phone";
 
 type Props = {
   value: string[];
@@ -11,21 +12,6 @@ type Props = {
 };
 
 type Token = { raw: string; norm?: string; valid: boolean };
-
-function normalizeVNPhone(raw: string): string | null {
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return null;
-
-  let national = "";
-  if (raw.trim().startsWith("+84")) national = digits.slice(2);
-  else if (digits.startsWith("84")) national = digits.slice(2);
-  else if (digits.startsWith("0")) national = digits.slice(1);
-  else if (digits.length >= 9 && digits.length <= 11) national = digits;
-  else return null;
-
-  if (national.length < 8 || national.length > 11) return null;
-  return `+84${national}`;
-}
 
 function parseMany(input: string): string[] {
   return input
@@ -66,7 +52,7 @@ export default function PhoneTagsInput({
     if (!raws.length) return;
     const next = [...tokens];
     for (const r of raws) {
-      const norm = normalizeVNPhone(r);
+      const norm = normalizePhone(r);
       const valid = !!norm;
       const exists = valid && next.some((t) => t.norm === norm);
       if (exists) continue;

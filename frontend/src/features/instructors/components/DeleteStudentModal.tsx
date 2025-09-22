@@ -13,7 +13,7 @@ export default function DeleteStudentModal({
   onClose: () => void;
   student: any;
 }) {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
 
   const mut = useMutation({
     mutationFn: async () => {
@@ -23,8 +23,8 @@ export default function DeleteStudentModal({
     },
     onSuccess: (res: any) => {
       if (res?.ok) {
-        qc.invalidateQueries({ queryKey: ["students"], exact: false });
-        qc.invalidateQueries({
+        queryClient.invalidateQueries({ queryKey: ["students"], exact: false });
+        queryClient.invalidateQueries({
           queryKey: studentsKeys?.all ?? ["students"],
           exact: false,
         });

@@ -1,5 +1,8 @@
 import NotificationBell from "@/components/NotificationBell";
-import { storage } from "@/utils/storage";
+import ProfileModal from "./ProfileModal";
+import { useState } from "react";
+import AppNavbarMenu from "./AppNavBarMenu";
+import { useProfile } from "@/hooks/use-profile";
 
 interface Props {
   appName?: string;
@@ -14,13 +17,13 @@ interface Props {
 
 export default function AppNavbar({
   appName = "Online Classroom Management System",
-  avatarUrl,
-  userName = "Instructor",
-  onProfile,
-  onSettings,
 }: Props) {
-  const onLogout = () => {
-    storage.clear();
+  const { currentUser } = useProfile();
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  const onProfile = () => {
+    close();
+    setIsProfileModalOpen(true);
   };
 
   return (
@@ -34,43 +37,18 @@ export default function AppNavbar({
       <div className="flex items-center gap-3">
         <NotificationBell />
 
-        <div className="dropdown dropdown-end">
-          <div
-            tabIndex={0}
-            role="button"
-            className="btn btn-ghost btn-circle avatar"
-          >
-            <div className="w-9 rounded-full">
-              <img
-                alt={userName}
-                src={
-                  avatarUrl ??
-                  `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(
-                    userName,
-                  )}`
-                }
-              />
-            </div>
-          </div>
-          <ul
-            tabIndex={0}
-            className="menu menu-sm dropdown-content bg-base-100 rounded-box mt-3 w-52 shadow"
-          >
-            <li className="menu-title px-4 py-2">{userName}</li>
-            <li>
-              <a onClick={onProfile}>Profile</a>
-            </li>
-            <li>
-              <a onClick={onSettings}>Settings</a>
-            </li>
-            <li>
-              <a className="text-error" onClick={onLogout}>
-                Logout
-              </a>
-            </li>
-          </ul>
-        </div>
+        <AppNavbarMenu
+          onOpenProfile={onProfile}
+          userName={currentUser?.username}
+        />
       </div>
+
+      {isProfileModalOpen && (
+        <ProfileModal
+          onClose={() => setIsProfileModalOpen(false)}
+          open={isProfileModalOpen}
+        />
+      )}
     </div>
   );
 }

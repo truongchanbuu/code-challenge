@@ -2,6 +2,7 @@ import { storage } from "@/utils/storage";
 import type { AddStudentResponse, StudentsPage } from "../schemas/api.schema";
 import type { AddStudentValues } from "../schemas/student.schema";
 import type { AssignModalResult } from "../schemas/assignment.schema";
+import type { Assignment } from "@/schemas/assignment.schema";
 
 const API = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -125,7 +126,6 @@ export async function postAssignLesson(payload: {
       Authorization: `Bearer ${storage.accessToken}`,
     },
     body: JSON.stringify(payload),
-    credentials: "include",
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -138,4 +138,22 @@ export async function postAssignLesson(payload: {
     };
   }
   return { ok: true, data: json?.data };
+}
+
+export async function fetchCurrentAssignments(
+  phones: string[],
+): Promise<Assignment> {
+  const queryString = encodeURIComponent(phones.join(","));
+  const result = await fetch(
+    `${API}/instructor/currentAssignments?phones=${queryString}`,
+    {
+      headers: {
+        Authorization: `Bearer ${storage.accessToken}`,
+      },
+    },
+  );
+  if (!result.ok) throw new Error("Failed to load current assignments");
+  const json = await result.json();
+  console.log(`json: ${JSON.stringify(json)}`);
+  return json?.data || {};
 }

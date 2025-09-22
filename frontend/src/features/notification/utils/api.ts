@@ -2,7 +2,6 @@ import { storage } from "@/utils/storage";
 
 export async function apiCount() {
   const r = await fetch("/api/notifications/unread-count", {
-    credentials: "include",
     headers: storage.accessToken
       ? { Authorization: `Bearer ${storage.accessToken}` }
       : undefined,
@@ -13,7 +12,6 @@ export async function apiCount() {
 
 export async function apiList() {
   const r = await fetch("/api/notifications?limit=20", {
-    credentials: "include",
     headers: storage.accessToken
       ? { Authorization: `Bearer ${storage.accessToken}` }
       : undefined,
@@ -25,7 +23,6 @@ export async function apiList() {
 export async function apiRead(id: string) {
   await fetch(`/api/notifications/${id}/read`, {
     method: "POST",
-    credentials: "include",
     headers: storage.accessToken
       ? { Authorization: `Bearer ${storage.accessToken}` }
       : undefined,

@@ -10,3 +10,11 @@ export const studentsKeys = {
   ],
   infinite: (q: unknown) => ["students", "infinite", q] as const,
 };
+
+export const assignmentsKeys = {
+  assignments: (phones: string[]) => [
+    "instructor",
+    "currentAssignments",
+    phones.sort().join(","),
+  ],
+};

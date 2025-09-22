@@ -16,31 +16,31 @@ export const AssignmentSchema = z
         assignedBy: PhoneSchema,
         assignedAt: z.coerce.date(),
         doneAt: z.coerce.date().nullable().optional(),
-        updatedAt: z.coerce.date(),
+        updatedAt: z.coerce.date().optional().nullable(),
     })
-    .superRefine((v, ctx) => {
-        if (v.status === "done" && !v.doneAt) {
+    .superRefine((val, ctx) => {
+        if (val.status === "done" && !val.doneAt) {
             ctx.addIssue({
                 code: "custom",
                 path: ["doneAt"],
                 message: "doneAt is required when status is 'done'.",
             });
         }
-        if (v.status === "assigned" && v.doneAt) {
+        if (val.status === "assigned" && val.doneAt) {
             ctx.addIssue({
                 code: "custom",
                 path: ["doneAt"],
                 message: "doneAt must be null while status is 'assigned'.",
             });
         }
-        if (v.doneAt && v.doneAt < v.assignedAt) {
+        if (val.doneAt && val.doneAt < val.assignedAt) {
             ctx.addIssue({
                 code: "custom",
                 path: ["doneAt"],
                 message: "doneAt cannot be before assignedAt.",
             });
         }
-        if (v.updatedAt < v.assignedAt) {
+        if (val.updatedAt && val.updatedAt < val.assignedAt) {
             ctx.addIssue({
                 code: "custom",
                 path: ["updatedAt"],

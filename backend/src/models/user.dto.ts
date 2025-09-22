@@ -12,3 +12,10 @@ export const CreateUserDTOSchema = z
     .strict();
 
 export type CreateUserDTO = z.infer<typeof CreateUserDTOSchema>;
+
+export const UpdateProfileDTOSchema = z.object({
+    email: z.email().optional(),
+    username: z.string().min(3).max(100),
+    phoneNumber: PhoneSchema.optional(),
+});
+export type UpdateProfileDTO = z.infer<typeof UpdateProfileDTOSchema>;

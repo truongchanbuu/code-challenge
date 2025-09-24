@@ -1,9 +1,6 @@
 import { z } from "zod";
 import { PhoneSchema } from "./phone.model";
-
-export const LessonIdSchema = z
-    .string()
-    .regex(/^L\d+$/, "lessonId must look like 'L123'");
+import { LessonIdSchema } from "./lesson.model";
 
 export const AssignmentStatusSchema = z.enum(["assigned", "done"]);
 

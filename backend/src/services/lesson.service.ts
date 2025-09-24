@@ -1,12 +1,16 @@
 import type { LessonRepo } from "../repos/lesson.repo";
+import type { StudentLessonRepo } from "../repos/student-lesson.repo";
+import type { UserRepo } from "../repos/user.repo";
+import { NotificationService } from "./notification.service";
+
 import { normalizePhone } from "../utils/phone";
 import { AppError, ERROR_CODE } from "../config/error";
-import type { SocketServer } from "../libs/socket";
-import { AssignLessonInput } from "../types/lesson";
-import { UserRepo } from "../repos/user.repo";
-import { EmailNotifier } from "./email.service";
-import { NotificationService } from "./notification.service";
-import { StudentLessonRepo } from "../repos/student-lesson.repo";
+
+import {
+    CreateLessonInput,
+    UpdateLessonInput,
+    ListLessonsQuery,
+} from "../models/lesson.model";
 
 function genLessonId() {
     return `L_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -30,9 +34,157 @@ export class LessonService {
         this.notificationService = deps.notificationService;
     }
 
+    private async getCallerPhoneOrThrow(callerId: string): Promise<string> {
+        if (!callerId) {
+            throw new AppError("Invalid data.", 400, ERROR_CODE.INVALID_DATA);
+        }
+        const caller = await this.userRepo.getUserById(callerId);
+        if (!caller) {
+            throw new AppError("User not found.", 404, ERROR_CODE.NOT_FOUND);
+        }
+
+        const phone = normalizePhone(caller.phoneNumber);
+        if (!phone) {
+            throw new AppError(
+                "Instructor phone is missing/invalid.",
+                400,
+                ERROR_CODE.VALIDATION
+            );
+        }
+        return phone;
+    }
+
+    private async ensureOwnershipOrThrow(
+        callerPhone: string,
+        lessonId: string
+    ) {
+        const lesson = await this.lessonRepo.getLessonById(lessonId);
+        if (!lesson) {
+            throw new AppError("Lesson not found.", 404, ERROR_CODE.NOT_FOUND);
+        }
+        if (lesson.createdBy !== callerPhone) {
+            throw new AppError(
+                "You are not allowed to modify this lesson.",
+                403,
+                ERROR_CODE.FORBIDDEN
+            );
+        }
+        return lesson;
+    }
+
+    async createLesson(callerId: string, input: CreateLessonInput) {
+        try {
+            const callerPhone = await this.getCallerPhoneOrThrow(callerId);
+            const now = new Date();
+            const lessonId = genLessonId();
+
+            await this.lessonRepo.createLesson({
+                lessonId,
+                title: input.title,
+                description: input.description ?? "",
+                createdBy: callerPhone,
+                createdAt: now,
+            });
+
+            const created = await this.lessonRepo.getLessonById(lessonId);
+            return created!;
+        } catch (e: any) {
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to create lesson.",
+                500,
+                ERROR_CODE.INTERNAL_ERROR
+            );
+        }
+    }
+
+    async listLessons(callerId: string, q: ListLessonsQuery) {
+        try {
+            const callerPhone = await this.getCallerPhoneOrThrow(callerId);
+            const { query, pageSize, cursor } = q;
+
+            return await this.lessonRepo.listLessonsByInstructor({
+                createdBy: callerPhone,
+                query,
+                pageSize,
+                cursor: cursor ?? null,
+            });
+        } catch (e: any) {
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to list lessons.",
+                500,
+                ERROR_CODE.INTERNAL_ERROR
+            );
+        }
+    }
+
+    async getLesson(callerId: string, lessonId: string) {
+        try {
+            const callerPhone = await this.getCallerPhoneOrThrow(callerId);
+            const lesson = await this.ensureOwnershipOrThrow(
+                callerPhone,
+                lessonId
+            );
+            return lesson;
+        } catch (e: any) {
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to get lesson.",
+                500,
+                ERROR_CODE.INTERNAL_ERROR
+            );
+        }
+    }
+
+    async updateLesson(
+        callerId: string,
+        lessonId: string,
+        patch: UpdateLessonInput
+    ) {
+        try {
+            const callerPhone = await this.getCallerPhoneOrThrow(callerId);
+            await this.ensureOwnershipOrThrow(callerPhone, lessonId);
+
+            const updated = await this.lessonRepo.updateLesson(lessonId, {
+                title: patch.title,
+                description: patch.description,
+            });
+
+            return updated;
+        } catch (e: any) {
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to update lesson.",
+                500,
+                ERROR_CODE.INTERNAL_ERROR
+            );
+        }
+    }
+
+    async deleteLesson(callerId: string, lessonId: string) {
+        try {
+            const callerPhone = await this.getCallerPhoneOrThrow(callerId);
+            await this.ensureOwnershipOrThrow(callerPhone, lessonId);
+            await this.lessonRepo.deleteLesson(lessonId);
+            return { ok: true, lessonId };
+        } catch (e: any) {
+            if (e instanceof AppError) throw e;
+            throw new AppError(
+                "Failed to delete lesson.",
+                500,
+                ERROR_CODE.INTERNAL_ERROR
+            );
+        }
+    }
+
     async assignLesson(
         callerId: string,
-        body: AssignLessonInput
+        body: {
+            title: string;
+            description?: string;
+            studentPhones: string[];
+        }
     ): Promise<{
         lessonId: string;
         assignedTo: number;
@@ -49,6 +201,7 @@ export class LessonService {
                     400,
                     ERROR_CODE.INVALID_DATA
                 );
+
             const caller = await this.userRepo.getUserById(callerId);
             if (!caller)
                 throw new AppError(
@@ -121,13 +274,13 @@ export class LessonService {
                     { sendEmail: true }
                 );
             } catch (e: any) {
-                console.log(corrId, "socket emit skipped", e?.message);
+                console.log(corrId, "socket/email notify skipped", e?.message);
             }
 
             return {
                 lessonId,
                 assignedTo: phones.length,
-                skipped: skippedPhones.length, // chỉ bao gồm những số invalid format
+                skipped: skippedPhones.length,
                 skippedPhones,
             };
         } catch (e: any) {

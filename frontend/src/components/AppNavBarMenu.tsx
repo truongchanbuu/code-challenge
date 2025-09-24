@@ -58,7 +58,7 @@ export default function AppNavbarMenu({
             src={
               avatarUrl ??
               `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(
-                userName,
+                `${userName} user`,
               )}`
             }
           />

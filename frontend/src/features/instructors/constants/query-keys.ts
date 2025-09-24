@@ -17,4 +17,14 @@ export const assignmentsKeys = {
     "currentAssignments",
     phones.sort().join(","),
   ],
+  studentAssignments: (phoneNumber?: string, email?: string) => [
+    "student",
+    "assignments",
+    phoneNumber ?? email ?? "me",
+  ],
+};
+
+export const lessonsKeys = {
+  lessons: (params: { query?: string; pageSize: number } = { pageSize: 20 }) =>
+    ["instructor", "lessons", params.query ?? "", params.pageSize] as const,
 };

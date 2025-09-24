@@ -1,4 +1,3 @@
-// src/controllers/notification.controller.ts
 import { Request, Response } from "express";
 import { NotificationService } from "../services/notification.service";
 import { getAuthUser } from "../middlewares/auth.middleware";

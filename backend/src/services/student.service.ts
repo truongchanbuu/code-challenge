@@ -78,7 +78,6 @@ export class StudentService {
         if (typeof input.email === "string" && input.email.trim()) {
             update.email = input.email.trim();
             update.emailVerified = false;
-            // (nếu đã có flow gửi verify email riêng thì gọi ở đây)
         }
 
         if (Object.keys(update).length > 0) {

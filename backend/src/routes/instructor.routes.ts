@@ -5,6 +5,12 @@ import { validate } from "../middlewares/validator.middleware";
 import { AssignLessonBodySchema } from "../types/lesson";
 import { InstructorController } from "../controllers/instructor.controller";
 import { AddStudentSchema } from "../models/student.schema";
+import {
+    CreateLessonInputSchema,
+    LessonIdSchema,
+    ListLessonsQuerySchema,
+    UpdateLessonInputSchema,
+} from "../models/lesson.model";
 
 export class InstructorRoutes {
     public router: Router;
@@ -17,6 +23,47 @@ export class InstructorRoutes {
         instructorController: InstructorController;
     }) {
         this.router = Router();
+
+        this.router.get(
+            "/lessons",
+            requireAuth,
+            requireRoles("instructor"),
+            validate.query(ListLessonsQuerySchema),
+            lessonController.listLessons.bind(lessonController)
+        );
+
+        this.router.post(
+            "/lessons",
+            requireAuth,
+            requireRoles("instructor"),
+            validate.body(CreateLessonInputSchema),
+            lessonController.createLesson.bind(lessonController)
+        );
+
+        this.router.get(
+            "/lessons/:lessonId",
+            requireAuth,
+            requireRoles("instructor"),
+            validate.params(LessonIdSchema),
+            lessonController.getLesson.bind(lessonController)
+        );
+
+        this.router.put(
+            "/lessons/:lessonId",
+            requireAuth,
+            requireRoles("instructor"),
+            validate.params(LessonIdSchema),
+            validate.body(UpdateLessonInputSchema),
+            lessonController.updateLesson.bind(lessonController)
+        );
+
+        this.router.delete(
+            "/lessons/:lessonId",
+            requireAuth,
+            requireRoles("instructor"),
+            validate.params(LessonIdSchema),
+            lessonController.deleteLesson.bind(lessonController)
+        );
 
         this.router.post(
             "/assignLesson",

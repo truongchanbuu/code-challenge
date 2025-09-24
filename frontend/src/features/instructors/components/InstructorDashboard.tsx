@@ -7,6 +7,7 @@ import AppNavbar from "@/components/AppNavBar";
 import StudentsTable from "./StudentTable";
 import AddStudentModal from "./AddStudentModal";
 import AssignLessonModal from "./AssignLessonModal";
+import InstructorLessons from "@/features/lessons/InstructorLessons";
 
 export default function InstructorDashboard() {
   const navigator = useNavigate();
@@ -93,11 +94,7 @@ export default function InstructorDashboard() {
           />
         )}
 
-        {tab === "lessons" && (
-          <div className="card p-6">
-            <div className="opacity-70">Lessons placeholder</div>
-          </div>
-        )}
+        {tab === "lessons" && <InstructorLessons />}
       </div>
 
       <AssignLessonModal

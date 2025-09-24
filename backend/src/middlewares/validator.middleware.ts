@@ -1,12 +1,24 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError, ERROR_CODE } from "../config/error";
-import { ZodError } from "zod";
+import { z, ZodError } from "zod";
 
 function checkSchema(schemas: any) {
     return (req: Request, res: Response, next: NextFunction) => {
         try {
+            console.log(
+                "Validating request with schemas:",
+                schemas,
+                "req.body, req.query, req.params); ",
+                JSON.stringify(req.body),
+                JSON.stringify(req.query),
+                JSON.stringify(req.params)
+            );
             if (schemas.body) req.body = schemas.body.parse(req.body);
-            if (schemas.query) req.query = schemas.query.parse(req.query);
+            if (schemas.query) {
+                const parsed = schemas.query.parse(req.query);
+                const cur = (req as any).validated || {};
+                (req as any).validated = { ...cur, query: parsed };
+            }
             if (schemas.params) req.params = schemas.params.parse(req.params);
             next();
         } catch (e) {
@@ -33,7 +45,22 @@ function checkSchema(schemas: any) {
 export const validate = {
     body: (schema: any) => checkSchema({ body: schema }),
     query: (schema: any) => checkSchema({ query: schema }),
-    params: (schema: any) => checkSchema({ params: schema }),
+    params:
+        (schema: any, key?: string) =>
+        (req: Request, res: Response, next: NextFunction) => {
+            try {
+                const finalSchema =
+                    schema instanceof z.ZodString
+                        ? z.object({
+                              [key || Object.keys(req.params)[0] || "id"]:
+                                  schema,
+                          })
+                        : schema;
+                return checkSchema({ params: finalSchema })(req, res, next);
+            } catch (e) {
+                return next(e);
+            }
+        },
     headers: (schema: any) => checkSchema({ headers: schema }),
     all: (schemas: any) => checkSchema(schemas),
 };

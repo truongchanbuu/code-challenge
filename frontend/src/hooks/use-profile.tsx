@@ -1,4 +1,4 @@
-import { getProfile, updateProfile } from "@/features/student/utils/api";
+import { getProfile, updateProfile } from "@/features/profile/utils/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 

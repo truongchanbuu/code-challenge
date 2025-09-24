@@ -1,6 +1,7 @@
 import nodemailer, { Transporter } from "nodemailer";
 import { Notifier } from "../repos/notifier";
 import { AppError, ERROR_CODE } from "../config/error";
+import { APP_NAME } from "../config/constants";
 
 export class EmailNotifier implements Notifier {
     private transporter: Transporter;
@@ -133,18 +134,6 @@ export class EmailNotifier implements Notifier {
         const ensureArray = (v: string | string[]) =>
             Array.isArray(v) ? v : [v];
 
-        const esc = (s?: string) =>
-            (s ?? "")
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;");
-
-        const finalSubject =
-            subject ||
-            (title
-                ? `[Online Classroom Management] - ${title}`
-                : "[Online Classroom] - Notification");
-
         const finalText =
             text ||
             [
@@ -156,25 +145,38 @@ export class EmailNotifier implements Notifier {
                 .join("\n\n") ||
             "You have a new notification.";
 
+        const esc = (s?: string) =>
+            (s ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+
         const finalHtml =
             html ||
             `
-      <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;color:#111">
-        ${title ? `<h2 style="margin:0 0 12px">${esc(title)}</h2>` : ""}
-        ${body ? `<p style="margin:0 0 8px">${esc(body)}</p>` : ""}
-        ${
-            actionUrl
-                ? `
-          <p style="margin:14px 0">
-            <a href="${actionUrl}" style="display:inline-block;background:#111;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">${esc(actionText)}</a>
-          </p>
-          <p style="margin:10px 0"><a href="${actionUrl}">${actionUrl}</a></p>
-        `
-                : ""
-        }
-        <p style="font-size:12px;color:#666;margin-top:16px">If you didn’t expect this, you can ignore this email.</p>
-      </div>
-    `;
+                <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;color:#111">
+                    ${title ? `<h2 style="margin:0 0 12px">${esc(title)}</h2>` : ""}
+                    ${body ? `<p style="margin:0 0 8px">${esc(body)}</p>` : ""}
+                    ${
+                        actionUrl
+                            ? `
+                        <p style="margin:14px 0">
+                        <a href="${actionUrl}" style="display:inline-block;background:#111;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">
+                            ${esc(actionText)}
+                        </a>
+                        </p>
+                        <p style="margin:10px 0"><a href="${actionUrl}">${actionUrl}</a></p>
+                    `
+                            : ""
+                    }
+                    <p style="font-size:12px;color:#666;margin-top:16px">If you didn’t expect this, you can ignore this email.</p>
+                </div>
+            `;
+
+        const finalSubject =
+            subject || title
+                ? `[${APP_NAME}] ${title}`
+                : `[${APP_NAME}] You have a new notification`;
 
         try {
             await this.transporter.sendMail({
@@ -193,7 +195,6 @@ export class EmailNotifier implements Notifier {
                 command: e?.command,
                 response: e?.response,
             });
-
             throw new AppError(
                 "Email delivery failed",
                 502,

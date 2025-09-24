@@ -1,7 +1,7 @@
 import type { Assignment } from "@/schemas/assignment.schema";
 import { EmptyState } from "./EmptyState";
 import { AssignmentRow } from "./AssignmentRow";
-import { AssignmentsSkeleton } from "./AssignmentsSkeleton";
+import { Skeleton } from "@/components/Skeleton";
 
 export function AssignmentsTable(props: {
   isLoading: boolean;
@@ -30,7 +30,7 @@ export function AssignmentsTable(props: {
           </tr>
         </thead>
         <tbody>
-          {isLoading && <AssignmentsSkeleton rows={4} />}
+          {isLoading && <Skeleton rows={4} />}
 
           {!isLoading && assignments.length === 0 && (
             <tr>

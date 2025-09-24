@@ -7,6 +7,7 @@ import {
     NotificationItem,
 } from "../models/notification.model";
 import { EmailNotifier } from "./email.service";
+import { APP_NAME } from "../config/constants";
 
 export class NotificationService {
     constructor(
@@ -89,13 +90,11 @@ export class NotificationService {
                             to,
                             subject:
                                 opts.emailSubject ??
-                                `[Online Classroom Management] ${base.title}`,
+                                `[${APP_NAME}] ${base.title}`,
                             text: opts.emailText ?? base.body ?? base.title,
-                            body:
-                                opts.emailHtml ??
-                                opts.emailText ??
-                                base.body ??
-                                `You got an assignment for ${base.title}`,
+                            html: opts.emailHtml ?? undefined,
+                            title: base.title,
+                            body: base.body ?? undefined,
                         })
                     )
                 );
@@ -123,7 +122,7 @@ export class NotificationService {
 
         const res = await this.createAndDispatch(phones, base, {
             sendEmail: !!opts?.sendEmail,
-            emailSubject: `[Classroom] New lesson assigned: ${title}`,
+            emailSubject: `[${APP_NAME}] New lesson assigned: ${title}`,
             emailText: `You have a new lesson "${title}".`,
             emailHtml: `<p>You have a new lesson: <b>${title}</b>.</p>`,
         });

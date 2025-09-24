@@ -2,14 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAppSocket } from "@/hooks/use-socket";
 import AppNavbar from "@/components/AppNavBar";
-import { getAssignments, getProfile, apiMarkDone } from "../utils/api";
-import type { Assignment } from "@/schemas/assignment.schema";
+import { getAssignments, apiMarkDone } from "../utils/api";
+import type { Assignment, AssignmentStatus } from "@/schemas/assignment.schema";
 import { AssignmentsHeader } from "./StudentDashboardHeader";
 import { AssignmentsTable } from "./AssignmentTable";
 import { ErrorBanner } from "./ErrorBanner";
+import { useProfile } from "@/hooks/use-profile";
+import { assignmentsKeys } from "@/features/instructors/constants/query-keys";
 
 export default function StudentDashboardPage() {
   const queryClient = useQueryClient();
+  const { currentUser } = useProfile();
 
   const {
     data: assignments = [],
@@ -17,7 +20,10 @@ export default function StudentDashboardPage() {
     isError: isAssignmentsError,
     refetch: refetchAssignments,
   } = useQuery({
-    queryKey: ["student", "assignments"],
+    queryKey: assignmentsKeys.studentAssignments(
+      currentUser?.phoneNumber,
+      currentUser?.email,
+    ),
     queryFn: getAssignments,
     refetchOnWindowFocus: false,
   });
@@ -25,7 +31,7 @@ export default function StudentDashboardPage() {
   const invalidAssignmentCount: number =
     (assignments as any).__invalidCount ?? 0;
 
-  const [statusFilter, setStatusFilter] = useState<"all" | "assigned" | "done">(
+  const [statusFilter, setStatusFilter] = useState<"all" | AssignmentStatus>(
     "all",
   );
   const [searchText, setSearchText] = useState("");
@@ -86,12 +92,6 @@ export default function StudentDashboardPage() {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["student", "assignments"] });
     },
-  });
-
-  const { data: currentUser } = useQuery({
-    queryKey: ["me"],
-    queryFn: getProfile,
-    staleTime: 5 * 60_000,
   });
 
   const { socket } = useAppSocket();

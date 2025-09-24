@@ -28,7 +28,7 @@ export function useLessonsQuery(params: { query?: string; pageSize?: number }) {
 }
 
 export function useUpdateLesson() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
       lessonId,
@@ -38,7 +38,7 @@ export function useUpdateLesson() {
       data: { title?: string; description?: string };
     }) => updateLesson(lessonId, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: lessonsKeys.lessons() });
+      queryClient.invalidateQueries({ queryKey: lessonsKeys.lessons() });
       toast.success("Update lesson successfully!");
     },
     onError: (e: any) => {
@@ -48,11 +48,11 @@ export function useUpdateLesson() {
 }
 
 export function useCreateLesson() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createLesson,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: lessonsKeys.lessons() });
+      queryClient.invalidateQueries({ queryKey: lessonsKeys.lessons() });
       toast.success("Create lesson successfully!");
     },
     onError: (e: any) => {
@@ -62,11 +62,11 @@ export function useCreateLesson() {
 }
 
 export function useDeleteLesson() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteLesson,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: lessonsKeys.lessons() });
+      queryClient.invalidateQueries({ queryKey: lessonsKeys.lessons() });
       toast.success("Delete lesson successfully!");
     },
     onError: (e: any) => {

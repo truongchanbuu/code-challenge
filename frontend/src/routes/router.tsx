@@ -6,6 +6,7 @@ import StudentDashboardPage from "@/features/student/components/StudentDashboard
 import { PublicOnly, AuthGuard, RoleGuard } from "./guard";
 import NotFoundPage from "@/pages/NotFoundPage";
 import AccountSetup from "@/features/auth/components/SetupAccount";
+import ChatPage from "@/pages/ChatPage";
 
 function PublicOnlyLayout() {
   return (
@@ -52,6 +53,10 @@ export const router = createBrowserRouter([
             <StudentDashboardPage />
           </RoleGuard>
         ),
+      },
+      {
+        path: "/chat/:otherPhone",
+        element: <ChatPage />,
       },
     ],
   },

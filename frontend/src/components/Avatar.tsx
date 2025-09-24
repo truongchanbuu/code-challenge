@@ -66,7 +66,6 @@ function getInitials(name?: string): string {
 }
 
 function getColorFromName(name: string): string {
-  // Generate consistent colors based on name hash
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);

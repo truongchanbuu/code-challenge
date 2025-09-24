@@ -5,14 +5,6 @@ import { z, ZodError } from "zod";
 function checkSchema(schemas: any) {
     return (req: Request, res: Response, next: NextFunction) => {
         try {
-            console.log(
-                "Validating request with schemas:",
-                schemas,
-                "req.body, req.query, req.params); ",
-                JSON.stringify(req.body),
-                JSON.stringify(req.query),
-                JSON.stringify(req.params)
-            );
             if (schemas.body) req.body = schemas.body.parse(req.body);
             if (schemas.query) {
                 const parsed = schemas.query.parse(req.query);

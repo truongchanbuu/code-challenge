@@ -32,6 +32,7 @@ async function bootstrap() {
                                 return null;
                             }
                         },
+                        chatRepo: container.resolve("chatRepo"),
                     })
             ).singleton(),
         });

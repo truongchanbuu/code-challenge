@@ -1,3 +1,4 @@
+import type { Role } from "@/schemas/user.schema";
 import type { StudentsQuery } from "../schemas/query.schema";
 
 export const studentsKeys = {
@@ -27,4 +28,17 @@ export const assignmentsKeys = {
 export const lessonsKeys = {
   lessons: (params: { query?: string; pageSize: number } = { pageSize: 20 }) =>
     ["instructor", "lessons", params.query ?? "", params.pageSize] as const,
+};
+
+export const conversationsKeys = {
+  allConversations: (userPhone: string, role: Role) => [
+    "conversations",
+    userPhone,
+    role,
+  ],
+  history: (instructorPhone?: string, studentPhone?: string) => [
+    "history",
+    instructorPhone,
+    studentPhone,
+  ],
 };

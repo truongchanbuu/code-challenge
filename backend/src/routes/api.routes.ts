@@ -4,6 +4,7 @@ import { StudentRoutes } from "./student.routes";
 import { InstructorRoutes } from "./instructor.routes";
 import { NotificationRoutes } from "./notification.routes";
 import { ProfileRoutes } from "./profile.routes";
+import { ChatRoutes } from "./chat.routes";
 
 export class ApiRoutes {
     public router: Router;
@@ -13,6 +14,7 @@ export class ApiRoutes {
         instructorRoutes: InstructorRoutes;
         notificationRoutes: NotificationRoutes;
         profileRoutes: ProfileRoutes;
+        chatRoutes: ChatRoutes;
     }) {
         this.router = Router();
 
@@ -21,5 +23,6 @@ export class ApiRoutes {
         this.router.use("/instructor", deps.instructorRoutes.router);
         this.router.use("/notifications", deps.notificationRoutes.router);
         this.router.use("/me", deps.profileRoutes.router);
+        this.router.use("/chat", deps.chatRoutes.router);
     }
 }

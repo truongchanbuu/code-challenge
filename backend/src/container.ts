@@ -34,6 +34,10 @@ import { StudentController } from "./controllers/student.controller";
 import { ProfileRoutes } from "./routes/profile.routes";
 import { ProfileController } from "./controllers/profile.controller";
 import { ProfileService } from "./services/profile.service";
+import { ChatRepo } from "./repos/chat.repo";
+import { ChatService } from "./services/chat.service";
+import { ChatController } from "./controllers/chat.controller";
+import { ChatRoutes } from "./routes/chat.routes";
 
 export function createConfigContainer() {
     const container = createContainer();
@@ -64,6 +68,7 @@ export function createConfigContainer() {
         lessonRepo: asClass(LessonRepo).singleton(),
         studentLessonRepo: asClass(StudentLessonRepo).singleton(),
         notificationRepo: asClass(NotificationRepo).singleton(),
+        chatRepo: asClass(ChatRepo).singleton(),
 
         profileService: asClass(ProfileService).singleton(),
         userService: asClass(UserService).singleton(),
@@ -72,6 +77,7 @@ export function createConfigContainer() {
         studentService: asClass(StudentService).singleton(),
         lessonService: asClass(LessonService).singleton(),
         notificationService: asClass(NotificationService).singleton(),
+        chatService: asClass(ChatService).singleton(),
 
         authController: asClass(AuthController).singleton(),
         adminController: asClass(AdminController).singleton(),
@@ -80,6 +86,7 @@ export function createConfigContainer() {
         lessonController: asClass(LessonController).singleton(),
         notificationController: asClass(NotificationController).singleton(),
         profileController: asClass(ProfileController).singleton(),
+        chatController: asClass(ChatController).singleton(),
 
         instructorRoutes: asClass(InstructorRoutes).singleton(),
         authRoutes: asClass(AuthRoutes).singleton(),
@@ -87,6 +94,7 @@ export function createConfigContainer() {
         studentRoutes: asClass(StudentRoutes).singleton(),
         notificationRoutes: asClass(NotificationRoutes).singleton(),
         profileRoutes: asClass(ProfileRoutes).singleton(),
+        chatRoutes: asClass(ChatRoutes).singleton(),
         apiRoutes: asClass(ApiRoutes).singleton(),
     });
 

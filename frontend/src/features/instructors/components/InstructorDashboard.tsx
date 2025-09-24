@@ -8,10 +8,12 @@ import StudentsTable from "./StudentTable";
 import AddStudentModal from "./AddStudentModal";
 import AssignLessonModal from "./AssignLessonModal";
 import InstructorLessons from "@/features/lessons/InstructorLessons";
+import InstructorChatTab from "@/features/chat/components/InstructorTabBar";
+import { useProfile } from "@/hooks/use-profile";
 
 export default function InstructorDashboard() {
   const navigator = useNavigate();
-  const [tab, setTab] = useState<"students" | "lessons">(
+  const [tab, setTab] = useState<"students" | "lessons" | "chat">(
     () => (sessionStorage.getItem("tab") as any) || "students",
   );
 
@@ -38,6 +40,8 @@ export default function InstructorDashboard() {
     },
   });
 
+  const { currentUser } = useProfile();
+
   const toolbar = (
     <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
       <div className="flex-1">
@@ -61,7 +65,7 @@ export default function InstructorDashboard() {
     <div className="flex min-h-dvh flex-col">
       <AppNavbar />
       <div className="mx-auto w-full max-w-7xl">
-        {toolbar}
+        {tab !== "chat" && toolbar}
 
         <div role="tablist" className="tabs tabs-bordered mt-3">
           <button
@@ -77,6 +81,13 @@ export default function InstructorDashboard() {
             onClick={() => setTab("lessons")}
           >
             Lessons
+          </button>
+          <button
+            role="tab"
+            className={`tab ${tab === "chat" ? "tab-active" : ""}`}
+            onClick={() => setTab("chat")}
+          >
+            Chat
           </button>
         </div>
 
@@ -95,6 +106,10 @@ export default function InstructorDashboard() {
         )}
 
         {tab === "lessons" && <InstructorLessons />}
+
+        {tab === "chat" && (
+          <InstructorChatTab instructorPhone={currentUser!.phoneNumber} />
+        )}
       </div>
 
       <AssignLessonModal
